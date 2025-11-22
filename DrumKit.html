@@ -1,0 +1,204 @@
+<!-- Why did I make this? I am so god dang bored at this point, if you have an idea for the Primer project
+ email me at salingerebbesen@hasd.org or at kfangz75@icloud.com-->
+<!-- I would walk 500 miles and 500 more-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expanded Virtual Drum Studio</title>
+<style>
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h1 {
+  margin: 20px;
+}
+.controls {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.controls select, .controls button {
+  padding: 8px 12px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+.drum-container {
+  display: grid;
+  grid-template-columns: repeat(4, 130px);
+  gap: 15px;
+}
+.drum {
+  width: 130px;
+  height: 130px;
+  background: #444;
+  border-radius: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s, background 0.1s;
+  position: relative;
+}
+.drum.active {
+  transform: scale(1.1);
+  background: #f39c12;
+  box-shadow: 0 0 20px #f39c12;
+}
+</style>
+</head>
+<body>
+
+<h1>Expanded Virtual Drum Studio</h1>
+
+<div class="controls">
+  <label>Kit:
+    <select id="kitSelect">
+      <option value="classic">Classic</option>
+      <option value="electronic">Electronic</option>
+      <option value="rock">Rock</option>
+    </select>
+  </label>
+  <button id="recordBtn">Start Recording</button>
+  <button id="playBtn">Play Recording</button>
+</div>
+
+<div class="drum-container" id="drumContainer"></div>
+
+<script>
+const drumKeys = [
+  {key:'A', name:'Kick'},
+  {key:'S', name:'Snare'},
+  {key:'D', name:'Hi-Hat'},
+  {key:'F', name:'Tom1'},
+  {key:'G', name:'Tom2'},
+  {key:'H', name:'Crash'},
+  {key:'J', name:'Ride'},
+  {key:'K', name:'Tom3'},
+  {key:'L', name:'Floor Tom'},
+  {key:'Q', name:'Splash'},
+  {key:'W', name:'Cowbell'},
+  {key:'E', name:'Clap'},
+  {key:'R', name:'Open Hi-Hat'},
+  {key:'T', name:'Shaker'},
+  {key:'Y', name:'Tambourine'},
+  {key:'U', name:'Reverse Cymbal'}
+];
+
+const kits = {
+  classic: {
+    Kick:'https://s3.amazonaws.com/freecodecamp/drums/RP4_KICK_1.mp3',
+    Snare:'https://s3.amazonaws.com/freecodecamp/drums/Brk_Snr.mp3',
+    'Hi-Hat':'https://s3.amazonaws.com/freecodecamp/drums/Cev_H2.mp3',
+    Tom1:'https://s3.amazonaws.com/freecodecamp/drums/Heater-6.mp3',
+    Tom2:'https://s3.amazonaws.com/freecodecamp/drums/Dsc_Oh.mp3',
+    Crash:'https://s3.amazonaws.com/freecodecamp/drums/side_stick_1.mp3',
+    Ride:'https://s3.amazonaws.com/freecodecamp/drums/RP4_KICK_1.mp3',
+    Tom3:'https://s3.amazonaws.com/freecodecamp/drums/Brk_Snr.mp3',
+    'Floor Tom':'https://s3.amazonaws.com/freecodecamp/drums/Cev_H2.mp3',
+    Splash:'https://s3.amazonaws.com/freecodecamp/drums/Chord_1.mp3',
+    Cowbell:'https://s3.amazonaws.com/freecodecamp/drums/Chord_2.mp3',
+    Clap:'https://s3.amazonaws.com/freecodecamp/drums/Heater-2.mp3',
+    'Open Hi-Hat':'https://s3.amazonaws.com/freecodecamp/drums/Dsc_Oh.mp3',
+    Shaker:'https://s3.amazonaws.com/freecodecamp/drums/Heater-1.mp3',
+    Tambourine:'https://s3.amazonaws.com/freecodecamp/drums/Heater-4_1.mp3',
+    'Reverse Cymbal':'https://s3.amazonaws.com/freecodecamp/drums/Heater-3.mp3'
+  },
+};
+
+const drumContainer = document.getElementById('drumContainer');
+const kitSelect = document.getElementById('kitSelect');
+const recordBtn = document.getElementById('recordBtn');
+const playBtn = document.getElementById('playBtn');
+
+let currentKit = 'classic';
+let recording = false;
+let recordSequence = [];
+
+function createDrums() {
+  drumContainer.innerHTML = '';
+  drumKeys.forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'drum';
+    div.dataset.key = d.key;
+    div.dataset.sound = d.name;
+    div.innerHTML = `${d.key}<br>${d.name}`;
+    drumContainer.appendChild(div);
+  });
+}
+createDrums();
+
+function playSound(drumName) {
+  const audio = new Audio(kits[currentKit][drumName]);
+  audio.currentTime = 0;
+  audio.play();
+}
+
+function animateDrum(drumDiv){
+  drumDiv.classList.add('active');
+  setTimeout(()=> drumDiv.classList.remove('active'), 100);
+}
+
+drumContainer.addEventListener('click', e => {
+  if(!e.target.classList.contains('drum')) return;
+  const drumName = e.target.dataset.sound;
+  playSound(drumName);
+  animateDrum(e.target);
+  if(recording) recordSequence.push({name: drumName, time: Date.now()});
+});
+
+document.addEventListener('keydown', e => {
+  const drumDiv = Array.from(document.querySelectorAll('.drum'))
+    .find(d => d.dataset.key.toUpperCase() === e.key.toUpperCase());
+  if(drumDiv){
+    const drumName = drumDiv.dataset.sound;
+    playSound(drumName);
+    animateDrum(drumDiv);
+    if(recording) recordSequence.push({name: drumName, time: Date.now()});
+  }
+});
+
+kitSelect.addEventListener('change', e => {
+  currentKit = e.target.value;
+});
+
+recordBtn.addEventListener('click', ()=>{
+  if(!recording){
+    recordSequence = [];
+    recordBtn.textContent = 'Stop Recording';
+    recording = true;
+  } else {
+    recordBtn.textContent = 'Start Recording';
+    recording = false;
+  }
+});
+
+playBtn.addEventListener('click', ()=>{
+  if(recordSequence.length===0) return;
+  const startTime = recordSequence[0].time;
+  recordSequence.forEach(d => {
+    setTimeout(()=> {
+      playSound(d.name);
+      const drumDiv = Array.from(document.querySelectorAll('.drum'))
+        .find(x=>x.dataset.sound===d.name);
+      animateDrum(drumDiv);
+    }, d.time - startTime);
+  });
+});
+</script>
+</body>
+</html>

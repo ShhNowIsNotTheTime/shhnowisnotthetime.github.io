@@ -1,0 +1,387 @@
+
+<!-- Primerboard  made on 11/16/2025 3:11PM
+ kinda smol project
+ took a while to make but ChatGPT aint stealing my job..lolz
+ Vibe Aint Cool-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Primerboard</title>
+<style>
+  :root{
+    --ui-bg:#0f1724;
+    --panel-bg:#0b1220;
+    --accent:#22c55e;
+    --muted:#ffffff;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+  body{background:linear-gradient(180deg,#041025 0%, #071427 100%);color:#f7f7f7;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(0,0,0,0.25);backdrop-filter:blur(6px)}
+  .title{font-weight:600;font-size:18px}
+  .controls{display:flex;gap:8px;align-items:center;margin-left:auto}
+  .panel{background:var(--panel-bg);padding:8px;border-radius:8px;display:flex;gap:8px;align-items:center;box-shadow:0 4px 18px rgba(2,6,23,0.6)}
+  button{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:6px 8px;border-radius:6px;cursor:pointer}
+  button:hover{border-color:rgba(255,255,255,0.12);color:#fff}
+  input[type="color"]{width:36px;height:36px;border-radius:6px;border:none;padding:0}
+  input[type="range"]{width:120px}
+  #canvasWrap{flex:1;position:relative;overflow:hidden}
+  canvas{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:block;touch-action:none}
+  .hint{font-size:12px;color:var(--muted);margin-left:8px}
+  .small{font-size:13px;color:var(--muted)}
+  #fileInput{display:none}
+  footer{padding:8px 14px;font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center}
+  .kbd{padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.03);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">Primerboard</div>
+  <div class="panel controls">
+    <label class="small">Color<input id="color" type="color" value="#111111"></label>
+    <label class="small">Brush <input id="size" type="range" min="1" max="72" value="6"></label>
+    <button id="eraserBtn" title="Eraser">Eraser</button>
+    <button id="undoBtn" title="Undo">Undo</button>
+    <button id="clearBtn" title="Clear">Clear</button>
+    <button id="saveBtn" title="Save project (.wboard.json)">Save</button>
+    <button id="loadBtn" title="Load project">Load</button>
+    <input id="fileInput" type="file" accept=".wboard.json,application/json">
+    <button id="exportPngBtn" title="Export PNG of current view">Export PNG</button>
+    <span class="hint">Pan: <span class="kbd">Middle mouse</span> or <span class="kbd">Space + Drag</span> • Zoom: <span class="kbd">Wheel</span></span>
+  </div>
+</header>
+
+<div id="canvasWrap">
+  <canvas id="board"></canvas>
+</div>
+
+<footer>
+  <div class="small">Strokes: <span id="strokeCount">0</span></div>
+  <div class="small">Zoom: <span id="zoomLabel">100%</span></div>
+  <div style="margin-left:auto" class="small">Auto-save to localStorage (browser)</div>
+</footer>
+
+<script>
+const canvas = document.getElementById('board');
+const wrap = document.getElementById('canvasWrap');
+const ctx = canvas.getContext('2d', { alpha: true });
+
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+function resize() {
+  canvas.width = Math.floor(wrap.clientWidth * DPR);
+  canvas.height = Math.floor(wrap.clientHeight * DPR);
+  canvas.style.width = wrap.clientWidth + 'px';
+  canvas.style.height = wrap.clientHeight + 'px';
+  draw();
+}
+new ResizeObserver(resize).observe(wrap);
+
+let strokes = [];
+let undone = [];
+const settings = {
+  color: document.getElementById('color').value,
+  size: Number(document.getElementById('size').value),
+  mode: 'draw'
+};
+let tx = 0, ty = 0, scale = 1;
+
+let drawing = false;
+let currentStroke = null;
+let isPanning = false;
+let lastPan = null;
+let spaceDown = false;
+
+function screenToWorld(sx, sy){
+  const rect = canvas.getBoundingClientRect();
+  const x = (sx - rect.left) * DPR;
+  const y = (sy - rect.top) * DPR;
+  return { x: (x - tx) / scale, y: (y - ty) / scale };
+}
+function worldToScreen(wx, wy){
+  return { x: wx * scale + tx, y: wy * scale + ty };
+}
+
+function clearCanvas(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+function drawGrid(){
+  const gridSize = 100 * DPR * scale; 
+  if (gridSize < 6) return; 
+
+  const cols = Math.ceil(canvas.width / gridSize) + 2;
+  const rows = Math.ceil(canvas.height / gridSize) + 2;
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = Math.max(1, DPR * 0.5);
+  for(let i=-cols;i<cols;i++){
+    const x = Math.round((i * gridSize + (tx % gridSize)));
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(let j=-rows;j<rows;j++){
+    const y = Math.round((j * gridSize + (ty % gridSize)));
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function draw(){
+  clearCanvas();
+  ctx.fillStyle = 'rgba(255,255,255,0.01)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  drawGrid();
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for(const s of strokes){
+    if (!s.points || s.points.length === 0) continue;
+    ctx.beginPath();
+    ctx.strokeStyle = (s.mode === 'erase') ? 'rgba(0,0,0,1)' : s.color;
+    ctx.globalCompositeOperation = (s.mode === 'erase') ? 'destination-out' : 'source-over';
+    ctx.lineWidth = s.size * DPR * scale;
+    const p0 = worldToScreen(s.points[0].x, s.points[0].y);
+    ctx.moveTo(p0.x, p0.y);
+    for(let i=1;i<s.points.length;i++){
+      const p = worldToScreen(s.points[i].x, s.points[i].y);
+      ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  document.getElementById('strokeCount').textContent = strokes.length;
+  document.getElementById('zoomLabel').textContent = Math.round(scale*100) + '%';
+}
+
+canvas.addEventListener('pointerdown', e => {
+  if (e.button === 1 || spaceDown){
+    isPanning = true;
+    lastPan = {x: e.clientX, y: e.clientY};
+    canvas.setPointerCapture(e.pointerId);
+    return;
+  }
+  drawing = true;
+  canvas.setPointerCapture(e.pointerId);
+  const pt = screenToWorld(e.clientX, e.clientY);
+  currentStroke = {
+    color: settings.color,
+    size: settings.size,
+    mode: settings.mode === 'erase' ? 'erase' : 'draw',
+    points: [{x: pt.x, y: pt.y}]
+  };
+  strokes.push(currentStroke);
+  undone = []; 
+  draw();
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (isPanning && lastPan){
+    const dx = (e.clientX - lastPan.x) * DPR;
+    const dy = (e.clientY - lastPan.y) * DPR;
+    tx += dx;
+    ty += dy;
+    lastPan = {x: e.clientX, y: e.clientY};
+    draw();
+    return;
+  }
+  if (!drawing || !currentStroke) return;
+  const pt = screenToWorld(e.clientX, e.clientY);
+  const lp = currentStroke.points[currentStroke.points.length - 1];
+  const dx = pt.x - lp.x, dy = pt.y - lp.y;
+  if (dx*dx + dy*dy > (0.5/scale)*(0.5/scale)){
+    currentStroke.points.push({x: pt.x, y: pt.y});
+    draw();
+  }
+});
+
+canvas.addEventListener('pointerup', e => {
+  if (isPanning){
+    isPanning = false;
+    canvas.releasePointerCapture(e.pointerId);
+    lastPan = null;
+    return;
+  }
+  if (drawing){
+    drawing = false;
+    currentStroke = null;
+    canvas.releasePointerCapture(e.pointerId);
+    draw();
+    saveAuto();
+  }
+});
+
+canvas.addEventListener('pointercancel', e => {
+  drawing = false;
+  isPanning = false;
+  currentStroke = null;
+  lastPan = null;
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = -e.deltaY;
+  const zoomFactor = Math.exp(delta * 0.0015); 
+  const rect = canvas.getBoundingClientRect();
+  const cx = (e.clientX - rect.left) * DPR;
+  const cy = (e.clientY - rect.top) * DPR;
+  const wx = (cx - tx) / scale;
+  const wy = (cy - ty) / scale;
+  scale *= zoomFactor;
+  scale = Math.max(0.05, Math.min(10, scale));
+  tx = cx - wx * scale;
+  ty = cy - wy * scale;
+  draw();
+});
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { spaceDown = true; e.preventDefault(); canvas.style.cursor = 'grab' }
+  if (e.ctrlKey && e.key === 'z') { undo(); }
+});
+window.addEventListener('keyup', e => {
+  if (e.code === 'Space') { spaceDown = false; canvas.style.cursor = 'default' }
+});
+
+document.getElementById('color').addEventListener('input', e => {
+  settings.color = e.target.value;
+  if (settings.mode === 'erase'){ settings.mode = 'draw'; document.getElementById('eraserBtn').textContent = 'Eraser'; }
+});
+document.getElementById('size').addEventListener('input', e => {
+  settings.size = Number(e.target.value);
+});
+document.getElementById('eraserBtn').addEventListener('click', () => {
+  if (settings.mode === 'erase'){ settings.mode = 'draw'; document.getElementById('eraserBtn').textContent = 'Eraser'; }
+  else { settings.mode = 'erase'; document.getElementById('eraserBtn').textContent = 'Drawing'; }
+});
+document.getElementById('undoBtn').addEventListener('click', undo);
+function undo(){
+  if (strokes.length === 0) return;
+  const s = strokes.pop();
+  undone.push(s);
+  draw();
+  saveAuto();
+}
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (!confirm('Clear the board? This cannot be undone (you can still load a saved file).')) return;
+  strokes = [];
+  undone = [];
+  draw();
+  saveAuto();
+});
+
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const data = {
+    meta: {created: new Date().toISOString(), version: 1},
+    view: {tx, ty, scale},
+    settings: {bg: null},
+    strokes
+  };
+  const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const name = 'whiteboard-' + new Date().toISOString().replace(/[:.]/g,'-') + '.wboard.json';
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+const fileInput = document.getElementById('fileInput');
+document.getElementById('loadBtn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async (e) => {
+  if (!e.target.files || e.target.files.length === 0) return;
+  const f = e.target.files[0];
+  try {
+    const txt = await f.text();
+    const obj = JSON.parse(txt);
+    if (!obj.strokes) throw new Error('Invalid file');
+    strokes = obj.strokes;
+    if (obj.view){
+      tx = obj.view.tx ?? tx;
+      ty = obj.view.ty ?? ty;
+      scale = obj.view.scale ?? scale;
+    }
+    undone = [];
+    draw();
+    saveAuto();
+    alert('Loaded project. You can continue editing.');
+  } catch(err){
+    alert('Error loading file: ' + err.message);
+  } finally {
+    fileInput.value = '';
+  }
+});
+
+document.getElementById('exportPngBtn').addEventListener('click', async () => {
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = canvas.width;
+  outCanvas.height = canvas.height;
+  const outCtx = outCanvas.getContext('2d');
+  outCtx.fillStyle = '#ffffff';
+  outCtx.fillRect(0,0,outCanvas.width,outCanvas.height);
+
+  outCtx.save();
+  outCtx.translate(tx, ty);
+  outCtx.scale(scale, scale);
+  outCtx.lineCap = 'round';
+  outCtx.lineJoin = 'round';
+  for (const s of strokes){
+    if (!s.points || s.points.length === 0) continue;
+    outCtx.beginPath();
+    outCtx.globalCompositeOperation = (s.mode === 'erase') ? 'destination-out' : 'source-over';
+    outCtx.strokeStyle = (s.mode === 'erase') ? 'rgba(0,0,0,1)' : s.color;
+    outCtx.lineWidth = s.size * DPR;
+    outCtx.moveTo(s.points[0].x, s.points[0].y);
+    for(let i=1;i<s.points.length;i++){
+      outCtx.lineTo(s.points[i].x, s.points[i].y);
+    }
+    outCtx.stroke();
+  }
+  outCtx.restore();
+
+  outCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'whiteboard-' + new Date().toISOString().replace(/[:.]/g,'-') + '.png';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+});
+
+const AUTO_KEY = 'infinite_whiteboard_autosave_v1';
+function saveAuto(){
+  try{
+    const snapshot = {
+      meta: {ts: Date.now()},
+      view: {tx, ty, scale},
+      strokes
+    };
+    localStorage.setItem(AUTO_KEY, JSON.stringify(snapshot));
+  }catch(e){}
+}
+function loadAuto(){
+  try{
+    const raw = localStorage.getItem(AUTO_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (obj.strokes) strokes = obj.strokes;
+    if (obj.view){
+      tx = obj.view.tx ?? tx; ty = obj.view.ty ?? ty; scale = obj.view.scale ?? scale;
+    }
+  }catch(e){}
+}
+
+loadAuto();
+draw();
+
+window.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); document.getElementById('saveBtn').click(); }
+  if (e.ctrlKey && e.key === 'o') { e.preventDefault(); document.getElementById('loadBtn').click(); }
+  if (e.key === 'e') { document.getElementById('eraserBtn').click(); }
+  if (e.key === 'z' && e.ctrlKey) { e.preventDefault(); undo(); }
+});
+</script>
+</body>
+</html>

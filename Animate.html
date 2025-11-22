@@ -1,0 +1,264 @@
+<!-- I swear if I start seeing anime or furry animations with this im gonna be livid-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Primer Animate</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f0f0f0;
+  }
+
+  header {
+    padding: 20px;
+    background: #333;
+    color: white;
+    width: 100%;
+    text-align: center;
+    font-size: 24px;
+  }
+
+  #app {
+    display: flex;
+    margin: 20px;
+    gap: 40px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  #controls, #preview, #code {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  }
+
+  #controls {
+    flex: 1 1 300px;
+  }
+
+  #preview {
+    flex: 1 1 400px;
+    min-height: 400px;
+    position: relative;
+    border: 2px dashed #ccc;
+  }
+
+  .animatedBox {
+    width: 100px;
+    height: 100px;
+    background: #007bff;
+    border-radius: 10px;
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    cursor: move;
+  }
+
+  #code {
+    flex: 1 1 400px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  label {
+    display: block;
+    margin: 10px 0 5px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 5px;
+    margin-bottom: 10px;
+  }
+
+  button {
+    padding: 10px 15px;
+    margin-top: 10px;
+    cursor: pointer;
+    border: none;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+  }
+
+  .keyframe-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+
+  .keyframe-group input {
+    flex: 1;
+  }
+</style>
+</head>
+<body>
+
+<header>Primer Animate</header>
+
+<div id="app">
+  <div id="controls">
+    <label for="elementColor">Box Color:</label>
+    <input type="color" id="elementColor" value="#007bff">
+
+    <div id="keyframesContainer">
+      <div class="keyframe-group">
+        <input type="text" placeholder="0% property:value" class="keyframe">
+        <input type="text" placeholder="50% property:value" class="keyframe">
+        <input type="text" placeholder="100% property:value" class="keyframe">
+      </div>
+    </div>
+    <button id="addKeyframeSet">Add Another Animation</button>
+
+    <label for="duration">Duration (s):</label>
+    <input type="number" id="duration" value="2" min="0.1" step="0.1">
+
+    <label for="timing">Timing Function:</label>
+    <select id="timing">
+      <option value="linear">linear</option>
+      <option value="ease">ease</option>
+      <option value="ease-in">ease-in</option>
+      <option value="ease-out">ease-out</option>
+      <option value="ease-in-out">ease-in-out</option>
+      <option value="cubic-bezier">cubic-bezier</option>
+    </select>
+    <input type="text" id="cubic" placeholder="0.25,0.1,0.25,1" style="display:none; margin-bottom:10px;">
+
+    <button id="applyBtn">Apply Animations</button>
+    <button id="exportBtn">Export HTML + CSS</button>
+  </div>
+
+  <div id="preview">
+    <div class="animatedBox" id="box1"></div>
+  </div>
+
+  <div id="code">
+  </div>
+</div>
+
+<script>
+  const box = document.getElementById('box1');
+  const elementColor = document.getElementById('elementColor');
+  const keyframesContainer = document.getElementById('keyframesContainer');
+  const addKeyframeSet = document.getElementById('addKeyframeSet');
+  const durationInput = document.getElementById('duration');
+  const timingInput = document.getElementById('timing');
+  const cubicInput = document.getElementById('cubic');
+  const applyBtn = document.getElementById('applyBtn');
+  const codeDiv = document.getElementById('code');
+  const exportBtn = document.getElementById('exportBtn');
+
+  let animationsCount = 1;
+
+  timingInput.addEventListener('change', () => {
+    if (timingInput.value === 'cubic-bezier') cubicInput.style.display = 'block';
+    else cubicInput.style.display = 'none';
+  });
+
+  addKeyframeSet.addEventListener('click', () => {
+    const div = document.createElement('div');
+    div.className = 'keyframe-group';
+    div.innerHTML = `<input type="text" placeholder="0% property:value" class="keyframe">
+                     <input type="text" placeholder="50% property:value" class="keyframe">
+                     <input type="text" placeholder="100% property:value" class="keyframe">`;
+    keyframesContainer.appendChild(div);
+    animationsCount++;
+  });
+
+  function applyAnimations() {
+
+    document.querySelectorAll('style.anim').forEach(e => e.remove());
+
+    const keyframeGroups = document.querySelectorAll('.keyframe-group');
+    let cssCode = '';
+    let animationNames = [];
+
+    keyframeGroups.forEach((group, index) => {
+      const keyframes = group.querySelectorAll('.keyframe');
+      const name = `anim_${index}_${Date.now()}`;
+      animationNames.push(name);
+
+      cssCode += `@keyframes ${name} {\n`;
+      keyframes.forEach(kf => {
+        if (kf.value.trim() !== '') {
+          cssCode += `  ${kf.value}\n`;
+        }
+      });
+      cssCode += `}\n\n`;
+    });
+
+  
+    const timingValue = timingInput.value === 'cubic-bezier' ? `cubic-bezier(${cubicInput.value})` : timingInput.value;
+    box.style.animation = animationNames.map(name => `${name} ${durationInput.value}s ${timingValue} infinite`).join(', ');
+
+    box.style.backgroundColor = elementColor.value;
+
+
+    const styleTag = document.createElement('style');
+    styleTag.className = 'anim';
+    styleTag.textContent = cssCode;
+    document.head.appendChild(styleTag);
+
+    codeDiv.textContent = `<div class="animatedBox" style="background:${elementColor.value}"></div>\n\n` + cssCode;
+  }
+
+  applyBtn.addEventListener('click', applyAnimations);
+
+
+  let isDragging = false;
+  let offsetX, offsetY;
+
+  box.addEventListener('mousedown', e => {
+    isDragging = true;
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (isDragging) {
+      box.style.left = e.pageX - offsetX - box.parentElement.offsetLeft + 'px';
+      box.style.top = e.pageY - offsetY - box.parentElement.offsetTop + 'px';
+    }
+  });
+
+  document.addEventListener('mouseup', () => isDragging = false);
+
+  exportBtn.addEventListener('click', () => {
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Animation Export</title>
+<style>
+${codeDiv.textContent}
+</style>
+</head>
+<body>
+<div class="animatedBox" style="background:${elementColor.value}"></div>
+</body>
+</html>`;
+    const blob = new Blob([htmlContent], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'animation.html';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+
+</body>
+</html>

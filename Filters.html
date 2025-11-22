@@ -1,0 +1,187 @@
+<!-- 
+
+Primer Filters for the Primer project.
+
+
+C'est moi, c'est toi
+C'est nous, c'est cool
+wait till I say something like that in school! :>
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Primer Filters</title>
+<style>
+  body { 
+    margin: 0; 
+    font-family: Arial; 
+    background: #222; 
+    color: white; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    zoom: 0.6;
+  }
+
+  canvas { border: 2px solid white; margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-gap: 5px; }
+  .cell { position: relative; }
+  .label { position: absolute; top: 5px; left: 5px; color: red; font-weight: bold; text-shadow: 1px 1px black; }
+  button { margin-top: 10px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<h1>Webcam/Camera Filters Grid</h1>
+<div class="grid" id="grid"></div>
+<button id="downloadBtn">Download Filter Image</button>
+
+<video id="video" autoplay playsinline style="display:none;"></video>
+
+<script>
+const video = document.getElementById('video');
+async function setupCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    await video.play();
+  } catch (err) {
+    alert("Error accessing webcam: " + err);
+  }
+}
+setupCamera();
+
+const filterNames = [
+  "Original", "Gaussian Blur", "Negative", "Sobel Edge", 
+  "High Pass", "Laplacian", "Average Blur", "Prewitt Edge",
+  "Sepia", "Emboss", "Sharpen"
+];
+
+const filters = {};
+const grid = document.getElementById('grid');
+filterNames.forEach(name => {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const canvas = document.createElement('canvas');
+  canvas.width = 320;
+  canvas.height = 240;
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = name;
+  cell.appendChild(canvas);
+  cell.appendChild(label);
+  grid.appendChild(cell);
+  filters[name] = canvas.getContext('2d');
+});
+
+function applyNegative(imageData) {
+  const d = imageData.data;
+  for (let i=0; i<d.length; i+=4) {
+    d[i] = 255 - d[i];
+    d[i+1] = 255 - d[i+1];
+    d[i+2] = 255 - d[i+2];
+  }
+  return imageData;
+}
+
+function applySepia(imageData) {
+  const d = imageData.data;
+  for (let i=0;i<d.length;i+=4){
+    const r=d[i], g=d[i+1], b=d[i+2];
+    d[i]   = Math.min(0.393*r + 0.769*g + 0.189*b,255);
+    d[i+1] = Math.min(0.349*r + 0.686*g + 0.168*b,255);
+    d[i+2] = Math.min(0.272*r + 0.534*g + 0.131*b,255);
+  }
+  return imageData;
+}
+
+function applyConvolution(imageData, kernel){
+  const side = Math.round(Math.sqrt(kernel.length));
+  const src = imageData.data;
+  const sw = imageData.width;
+  const sh = imageData.height;
+  const output = new ImageData(sw, sh);
+  const dst = output.data;
+
+  for (let y=0;y<sh;y++){
+    for (let x=0;x<sw;x++){
+      let r=0,g=0,b=0;
+      for (let ky=0;ky<side;ky++){
+        for (let kx=0;kx<side;kx++){
+          const px = Math.min(sw-1, Math.max(0, x + kx - Math.floor(side/2)));
+          const py = Math.min(sh-1, Math.max(0, y + ky - Math.floor(side/2)));
+          const pos = (py*sw + px)*4;
+          const weight = kernel[ky*side+kx];
+          r += src[pos]*weight;
+          g += src[pos+1]*weight;
+          b += src[pos+2]*weight;
+        }
+      }
+      const pos = (y*sw + x)*4;
+      dst[pos] = Math.min(Math.max(r,0),255);
+      dst[pos+1] = Math.min(Math.max(g,0),255);
+      dst[pos+2] = Math.min(Math.max(b,0),255);
+      dst[pos+3] = 255;
+    }
+  }
+  return output;
+}
+
+const blurKernel = [1/9,1/9,1/9,1/9,1/9,1/9,1/9,1/9,1/9];
+const sharpenKernel = [-1,-1,-1,-1,9,-1,-1,-1,-1];
+const embossKernel = [-2,-1,0,-1,1,1,0,1,2];
+const prewittX = [-1,0,1,-1,0,1,-1,0,1];
+const sobelX = [-1,0,1,-2,0,2,-1,0,1]; 
+
+function draw() {
+  const width = 320;
+  const height = 240;
+  const tmpCanvas = document.createElement('canvas');
+  tmpCanvas.width = width;
+  tmpCanvas.height = height;
+  const tmpCtx = tmpCanvas.getContext('2d');
+  tmpCtx.drawImage(video, 0, 0, width, height);
+  const original = tmpCtx.getImageData(0,0,width,height);
+
+  filters["Original"].putImageData(original,0,0);
+  filters["Negative"].putImageData(applyNegative(tmpCtx.getImageData(0,0,width,height)),0,0);
+  filters["Sepia"].putImageData(applySepia(tmpCtx.getImageData(0,0,width,height)),0,0);
+  filters["Average Blur"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),blurKernel),0,0);
+  filters["Sharpen"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),sharpenKernel),0,0);
+  filters["Emboss"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),embossKernel),0,0);
+  filters["Prewitt Edge"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),prewittX),0,0);
+  filters["Sobel Edge"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),sobelX),0,0);
+
+  const blur = applyConvolution(tmpCtx.getImageData(0,0,width,height),blurKernel);
+  const highPassData = tmpCtx.getImageData(0,0,width,height);
+  for(let i=0;i<highPassData.data.length;i+=4){
+    highPassData.data[i] = Math.min(Math.max(original.data[i]-blur.data[i]+128,0),255);
+    highPassData.data[i+1] = Math.min(Math.max(original.data[i+1]-blur.data[i+1]+128,0),255);
+    highPassData.data[i+2] = Math.min(Math.max(original.data[i+2]-blur.data[i+2]+128,0),255);
+  }
+  filters["High Pass"].putImageData(highPassData,0,0);
+  filters["Laplacian"].putImageData(applyConvolution(tmpCtx.getImageData(0,0,width,height),sharpenKernel),0,0);
+  requestAnimationFrame(draw);
+}
+
+video.addEventListener('play', ()=>{ draw(); });
+
+const downloadBtn = document.getElementById('downloadBtn');
+downloadBtn.addEventListener('click', ()=>{
+  const choice = prompt("Enter the filter name you want to download:\n" + filterNames.join(", "));
+  if(choice && filters[choice]){
+    const canvas = filters[choice].canvas;
+    const link = document.createElement('a');
+    link.href = canvas.toDataURL("image/png");
+    link.download = choice + ".png";
+    link.click();
+  } else {
+    alert("Invalid filter name!");
+  }
+});
+</script>
+</body>
+</html>

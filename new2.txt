@@ -1,0 +1,230 @@
+﻿javascript:(function(){
+if(document.getElementById('customGUIWindow')) return;
+
+
+const css=`#customGUIWindow{position:fixed;top:60px;left:60px;width:920px;height:520px;background:#241628;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.6);z-index:2147483647;display:flex;flex-direction:column;overflow:hidden;font-family:Segoe UI, Roboto, Arial, sans-serif;color:#f3f3f3}#customGUIHeader{height:48px;background:#2a2a2a;display:flex;align-items:center;justify-content:space-between;padding:0 14px;cursor:grab;border-bottom:3px solid orange}#customGUIHeader .title{font-weight:600;font-size:14px;color:#eaeaea}#customGUIHeader .hint{font-size:12px;color:#cfcfcf;opacity:.9}#customInner{flex:1;display:flex;min-height:0}#customSidebar{width:220px;background:black;padding:18px 10px;box-sizing:border-box;border-right:3px solid orange;display:flex;flex-direction:column;gap:8px;overflow:auto}#customSidebar .sideLogo{height:42px;margin:4px 6px 12px 6px;background:linear-gradient(90deg,#FF0000,#000000);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#ffd;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}.sidebarItem{padding:10px 12px;border-radius:6px;font-size:15px;color:#f5f5f5;background:transparent;border:1px solid rgba(255,165,0,0.04);display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .12s} .sidebarItem:hover{background:#111;border-color:orange;transform:translateX(4px)}#customContent{flex:1;padding:18px;box-sizing:border-box;background:#2f2f2f;border-left:3px solid orange;overflow:auto} .contentFrame{display:none;background:#000000;border:3px solid orange;border-radius:10px;padding:16px;color:#f2e9ff;box-shadow:inset 0 -6px 0 rgba(0,0,0,.25)} .contentFrame.active{display:block} .panelRow{display:flex;gap:14px;margin-bottom:14px} .panel{flex:1;background:linear-gradient(180deg,#000000,#FFA500);border-radius:10px;padding:12px;border:2px solid rgba(255,165,0,.06);display:flex;flex-direction:column;gap:8px} .panelFrame{background:#452a52;border-radius:8px;padding:10px;color:#ffd;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2);text-align:center} .bigBtn{display:inline-block;padding:10px 16px;border-radius:8px;background:#a53b3b;color:#fff;border:2px solid rgba(0,0,0,.2);font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.25);cursor:pointer} .accentSelect{background:#5a1a88;color:#fff;border-radius:8px;padding:8px 10px;border:2px solid rgba(0,0,0,.2)}#closeBtn{height:34px;width:34px;border-radius:6px;background:#d93b3b;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:800;border:2px solid rgba(0,0,0,.2)}#minBtn{height:34px;width:34px;border-radius:6px;background:#1f6fb2;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;border:2px solid rgba(0,0,0,.2)}@media (max-width:980px){#customGUIWindow{width:92%;left:4%;right:4%}}`;
+
+
+const s=document.createElement('style');
+s.id='customGUIStyles';
+s.innerHTML=css;
+document.documentElement.appendChild(s);
+
+
+const win=document.createElement('div');
+win.id='customGUIWindow';
+win.innerHTML=`
+<div id="customGUIHeader">
+  <div style="display:flex;gap:12px;align-items:center">
+    <div class="title">Chrometek V1 25w46a0722</div>
+    <div class="hint">Ctrl + E to hide | Ctrl + X for quick disable</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <div id="minBtn" title="Minimize">–</div>
+    <div id="closeBtn" title="Close">✕</div>
+  </div>
+</div>
+<div id="customInner">
+  <div id="customSidebar">
+    <div class="sideLogo">Falctek</div>
+    <div class="sidebarItem" data-target="Frame1">Main</div>
+    <div class="sidebarItem" data-target="Frame2">Alerter</div>
+    <div class="sidebarItem" data-target="Frame3">Help</div>
+    <div class="sidebarItem" data-target="Frame4">Minecraft</div>
+    <div class="sidebarItem" data-target="Frame5">Croxy Proxy</div>
+    <div class="sidebarItem" data-target="Frame6">Blooket Hacks V2</div>
+    <div class="sidebarItem" data-target="Frame7">YouTube</div>
+    <div class="sidebarItem" data-target="Frame8">Rules</div>
+    <div class="sidebarItem" data-target="Frame9">Fortnite?!?</div>
+    <div class="sidebarItem" data-target="Frame10">Misc</div>
+    <div class="sidebarItem" data-target="Frame11">Other Stuff</div>
+    <div class="sidebarItem" data-target="Frame12">Employee Stuff</div>
+    <div class="sidebarItem" data-target="Frame13">Who We Are</div>
+    <div class="sidebarItem" data-target="Frame14">Item 14</div>
+    <div class="sidebarItem" data-target="Frame15">Item 15</div>
+    <div class="sidebarItem" data-target="Frame16">Item 16</div>
+    <div class="sidebarItem" data-target="Frame17">Item 17</div>
+    <div class="sidebarItem" data-target="Frame18">Item 18</div>
+    <div class="sidebarItem" data-target="Frame19">Item 19</div>
+    <div class="sidebarItem" data-target="Frame20">Item 20</div>
+    <div class="sidebarItem" data-target="Frame21">Item 21</div>
+    <div class="sidebarItem" data-target="Frame22">Item 22</div>
+    <div class="sidebarItem" data-target="Frame23">Item 23</div>
+    <div class="sidebarItem" data-target="Frame24">Item 24</div>
+    <div class="sidebarItem" data-target="Frame25">Item 25</div>
+    <div class="sidebarItem" data-target="Frame26">Item 26</div>
+    <div class="sidebarItem" data-target="Frame27">Item 27</div>
+    <div class="sidebarItem" data-target="Frame28">Item 28</div>
+    <div class="sidebarItem" data-target="Frame29">Item 29</div>
+    <div class="sidebarItem" data-target="Frame30">Item 30</div>
+    <div class="sidebarItem" data-target="Frame31">Item 31</div>
+    <div class="sidebarItem" data-target="Frame32">Item 32</div>
+    <div class="sidebarItem" data-target="Frame33">Item 33</div>
+    <div class="sidebarItem" data-target="Frame34">Item 34</div>
+    <div class="sidebarItem" data-target="Frame35">Item 35</div>
+    <div class="sidebarItem" data-target="Frame36">Item 36</div>
+    <div class="sidebarItem" data-target="Frame37">Item 37</div>
+    <div class="sidebarItem" data-target="Frame38">Item 38</div>
+    <div class="sidebarItem" data-target="Frame39">Item 39</div>
+    <div class="sidebarItem" data-target="Frame40">Item 40</div>
+    <div class="sidebarItem" data-target="Frame41">Item 41</div>
+    <div class="sidebarItem" data-target="Frame42">Item 42</div>
+    <div class="sidebarItem" data-target="Frame43">Item 43</div>
+    <div class="sidebarItem" data-target="Frame44">Item 44</div>
+    <div class="sidebarItem" data-target="Frame45">Item 45</div>
+    <div class="sidebarItem" data-target="Frame46">Item 46</div>
+    <div class="sidebarItem" data-target="Frame47">Item 47</div>
+    <div class="sidebarItem" data-target="Frame48">Item 48</div>
+    <div class="sidebarItem" data-target="Frame49">Item 49</div>
+    <div class="sidebarItem" data-target="Frame50">Item 50</div>
+    <div class="sidebarItem" data-target="Frame51">Item 51</div>
+    <div class="sidebarItem" data-target="Frame52">Item 52</div>
+    <div class="sidebarItem" data-target="Frame53">Item 53</div>
+    <div class="sidebarItem" data-target="Frame54">Item 54</div>
+    <div class="sidebarItem" data-target="Frame55">Item 55</div>
+    <div class="sidebarItem" data-target="Frame56">Item 56</div>
+    <div class="sidebarItem" data-target="Frame57">Item 57</div>
+    <div class="sidebarItem" data-target="Frame58">Item 58</div>
+    <div class="sidebarItem" data-target="Frame59">Item 59</div>
+    <div class="sidebarItem" data-target="Frame60">Item 60</div>
+    <div class="sidebarItem" data-target="Frame61">Item 61</div>
+    <div class="sidebarItem" data-target="Frame62">Item 62</div>
+    <div class="sidebarItem" data-target="Frame63">Item 63</div>
+    <div class="sidebarItem" data-target="Frame64">Item 64</div>
+    <div class="sidebarItem" data-target="Frame65">Item 65</div>
+    <div class="sidebarItem" data-target="Frame66">Item 66</div>
+    <div class="sidebarItem" data-target="Frame67">Item 67</div>
+    <div class="sidebarItem" data-target="Frame68">Item 68</div>
+    <div class="sidebarItem" data-target="Frame69">Item 69</div>
+    <div class="sidebarItem" data-target="Frame70">Item 70</div>
+    <div class="sidebarItem" data-target="Frame71">Item 71</div>
+    <div class="sidebarItem" data-target="Frame72">Item 72</div>
+    <div class="sidebarItem" data-target="Frame73">Item 73</div>
+    <div class="sidebarItem" data-target="Frame74">Item 74</div>
+    <div class="sidebarItem" data-target="Frame75">Item 75</div>
+    <div class="sidebarItem" data-target="Frame76">Item 76</div>
+    <div class="sidebarItem" data-target="Frame77">Item 77</div>
+    <div class="sidebarItem" data-target="Frame78">Item 78</div>
+    <div class="sidebarItem" data-target="Frame79">Item 79</div>
+    <div class="sidebarItem" data-target="Frame80">Item 80</div>
+    <div class="sidebarItem" data-target="Frame81">Item 81</div>
+    <div class="sidebarItem" data-target="Frame82">Item 82</div>
+    <div class="sidebarItem" data-target="Frame83">Item 83</div>
+    <div class="sidebarItem" data-target="Frame84">Item 84</div>
+    <div class="sidebarItem" data-target="Frame85">Item 85</div>
+    <div class="sidebarItem" data-target="Frame86">Item 86</div>
+    <div class="sidebarItem" data-target="Frame87">Item 87</div>
+    <div class="sidebarItem" data-target="Frame88">Item 88</div>
+    <div class="sidebarItem" data-target="Frame89">Item 89</div>
+    <div class="sidebarItem" data-target="Frame90">Item 90</div>
+    <div class="sidebarItem" data-target="Frame91">Item 91</div>
+    <div class="sidebarItem" data-target="Frame92">Item 92</div>
+    <div class="sidebarItem" data-target="Frame93">Item 93</div>
+    <div class="sidebarItem" data-target="Frame94">Item 94</div>
+    <div class="sidebarItem" data-target="Frame95">Item 95</div>
+    <div class="sidebarItem" data-target="Frame96">Item 96</div>
+    <div class="sidebarItem" data-target="Frame97">Item 97</div>
+    <div class="sidebarItem" data-target="Frame98">Item 98</div>
+    <div class="sidebarItem" data-target="Frame99">Item 99</div>
+    <div class="sidebarItem" data-target="Frame100">Item 100</div>
+  </div>
+  <div id="customContent">
+    <div id="Frame1" class="contentFrame active"><div class="panelRow"><div class="panel"><div class="panelFrame">Hello, I am 5ll5t5t and this is our newest addition to Falctek, this is a bookmarklet ( Bookmarklet: putting code inside of a bookmark) to make things easier for everything and to not get caught by the IT department!!!!11!1! This will have everything including Blooket Hacks V2 coded by me, 5ll5t5t. People have been asking me how to play Fortnite on the Chromebook, well, I ain't going to tell ya ( lolz). If you like this and have ideas of things that we should add, go to the Help page and scroll until you find the google doc link where you can comment what should be added. ( to ez)</div></div></div></div>
+    <div id="Frame2" class="contentFrame">
+  <div class="panelRow">
+    <div class="panel" style="overflow:auto;max-height:200px;">
+      <div class="panelFrame">
+        <div style="overflow:auto;max-height:180px;">
+          <p>This is the first scrolling panel in Frame 2. Add as much text as you want here and it will scroll.</p>
+          <p>Line 2</p>
+          <p>Line 3</p>
+          <p>Line 4</p>
+          <p>Line 5</p>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="overflow:auto;max-height:200px;">
+      <div class="panelFrame">
+        <div style="overflow:auto;max-height:180px;">
+          <p>This is the second scrolling panel in Frame 2. More text can go here.</p>
+          <p>Line 2</p>
+          <p>Line 3</p>
+          <p>Line 4</p>
+          <p>Line 5</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+    <div id="Frame3" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 3</div></div></div></div>
+    <div id="Frame4" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Download Eaglercraft 1.8.8 here while 5ll5t5t works on the new version that includes more stuff: https://bafybeialxd4xd7puchx555zqrfmuaz7e7n7nh4crb3sfhvprxedx4c64fq.ipfs.dweb.link/?filename=EaglercraftX_1.8_WASM-GC_Offline_Download.zip   Sometimes I give myself the creeps</div></div></div></div>
+    <div id="Frame5" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 5</div></div></div></div>
+    <div id="Frame6" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">For the blooket hacks, copy the code below and open a new tab, then right click it and click edit, then click the url text area and delete everything in it, then paste the code below and click save! </div></div></div></div>
+    <div id="Frame7" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 7</div></div></div></div>
+    <div id="Frame8" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 8</div></div></div></div>
+    <div id="Frame9" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 9</div></div></div></div>
+    <div id="Frame10" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 10</div></div></div></div>
+    <div id="Frame11" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 11</div></div></div></div>
+<div id="Frame12" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 12</div></div></div></div>
+<div id="Frame13" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 13</div></div></div></div>
+<div id="Frame14" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 14</div></div></div></div>
+<div id="Frame15" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 15</div></div></div></div>
+
+
+    <div id="Frame100" class="contentFrame"><div class="panelRow"><div class="panel"><div class="panelFrame">Content for Frame 100</div></div></div></div>
+  </div>
+</div>
+`;
+
+
+const items = win.querySelectorAll('.sidebarItem');
+const frames = win.querySelectorAll('.contentFrame');
+
+
+items.forEach(it => it.addEventListener('click',()=>{
+  frames.forEach(f=>f.classList.remove('active'));
+  const t = win.querySelector('#'+it.dataset.target);
+  t.classList.add('active');
+}));
+
+
+win.querySelector('#closeBtn').addEventListener('click',()=>{win.remove();s.remove()});
+win.querySelector('#minBtn').addEventListener('click',()=>{
+  const content=win.querySelector('#customInner');
+  if(content.style.display==='none'){content.style.display='flex'; win.style.height=win._prevH||'520px';
+  } else { win._prevH=win.style.height; content.style.display='none'; win.style.height='48px'; }
+});
+
+
+(function makeDraggable(){
+  const header=win.querySelector('#customGUIHeader');
+  let dragging=false,offsetX=0,offsetY=0;
+  header.addEventListener('mousedown',e=>{
+    dragging=true; header.style.cursor='grabbing';
+    const rect=win.getBoundingClientRect();
+    offsetX=e.clientX-rect.left; offsetY=e.clientY-rect.top;
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging) return;
+    let nx=e.clientX-offsetX, ny=e.clientY-offsetY;
+    const mw=window.innerWidth, mh=window.innerHeight;
+    const ww=win.offsetWidth, wh=win.offsetHeight;
+    if(nx<6) nx=6; if(ny<6) ny=6;
+    if(nx+ww>mw-6) nx=mw-ww-6; if(ny+wh>mh-6) ny=mh-wh-6;
+    win.style.left=nx+'px'; win.style.top=ny+'px';
+  });
+  document.addEventListener('mouseup',()=>{if(dragging){dragging=false; header.style.cursor='grab'; document.body.style.userSelect=''}});
+})();
+
+
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey&&e.key.toLowerCase()==='e'){const w=document.getElementById('customGUIWindow'); if(w) w.style.display = (w.style.display==='none'?'flex':'flex');}
+  if(e.ctrlKey&&e.key.toLowerCase()==='x'){const w=document.getElementById('customGUIWindow'); if(w) { w.style.display='none' }}
+});
+
+
+document.body.appendChild(win);
+})();

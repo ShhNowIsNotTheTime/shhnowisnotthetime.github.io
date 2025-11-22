@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Browser OS — Demo</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#0f1724; --accent:#00d1ff; --muted:#9aa7b2;
+    --taskbar:#081018; --glass: rgba(255,255,255,0.03);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#e6eef6;user-select:none}
+
+  #desktop{
+    position:fixed;inset:0;overflow:hidden;background-size:cover;background-position:center;
+    display:flex;flex-direction:column;
+  }
+
+  .icons{
+    padding:20px;
+    display:flex;flex-wrap:wrap;gap:14px;width:fit-content;
+  }
+  .icon{
+    width:92px;text-align:center;color:var(--muted);cursor:pointer;
+  }
+  .icon .img{
+    width:72px;height:72px;border-radius:10px;background:linear-gradient(180deg,#1b2735,#10161b);
+    display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--accent);margin:0 auto 8px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.6);
+  }
+  .icon .label{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  #taskbar{
+    height:48px;background:var(--taskbar);display:flex;align-items:center;gap:10px;padding:6px 10px;border-top:1px solid rgba(255,255,255,0.02);
+    position:fixed;left:0;right:0;bottom:0;z-index:1000;
+  }
+  #startBtn{width:44px;height:36px;border-radius:8px;background:linear-gradient(180deg,var(--accent),#0088cc);display:flex;align-items:center;justify-content:center;color:#001018;font-weight:700;cursor:pointer}
+  #taskApps{display:flex;gap:8px;align-items:center}
+  .taskAppBtn{min-width:40px;padding:6px 8px;border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;border:none}
+  .taskAppBtn.active{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.02));color:var(--accent)}
+  #tray{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--muted);font-size:13px}
+  #clock{padding:6px 10px;border-radius:8px;background:transparent}
+
+  #startMenu{
+    position:fixed;left:10px;bottom:60px;width:320px;background:linear-gradient(180deg,#0f1724, rgba(255,255,255,0.01));
+    border-radius:12px;padding:12px;box-shadow:0 18px 60px rgba(0,0,0,0.7);display:none;z-index:1100;
+  }
+  #startMenu h3{margin:0 0 8px;color:var(--muted);font-size:14px}
+  .startGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .startTile{background:var(--glass);padding:8px;border-radius:8px;text-align:center;color:var(--muted);cursor:pointer}
+  .startTile .ic{font-size:20px;color:var(--accent);margin-bottom:6px}
+
+  .window{
+    position:absolute;background:linear-gradient(180deg,#081018,#0b1218);border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+    box-shadow:0 12px 40px rgba(0,0,0,0.6);overflow:hidden;min-width:260px;min-height:120px;
+  }
+  .titlebar{height:36px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);display:flex;align-items:center;padding:0 8px;gap:8px}
+  .title{flex:1;font-size:13px;color:var(--muted);padding-left:6px}
+  .winControls{display:flex;gap:6px}
+  .btn{width:32px;height:28px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer}
+  .content{padding:10px;height:calc(100% - 36px);overflow:auto;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+  .resizer{position:absolute;width:12px;height:12px;right:0;bottom:0;cursor:se-resize;background:transparent}
+  .terminal{background:#02060a;padding:10px;border-radius:6px;color:#bfefff;font-family:monospace;font-size:13px;height:100%}
+  .toolBtn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,#1b2430,#10151a);color:var(--muted);cursor:pointer}
+  input[type=text]{background:#071018;border-radius:8px;border:1px solid rgba(255,255,255,0.03);padding:8px;color:var(--muted);width:100%}
+
+  .dragging{opacity:0.92;transform:scale(1.005)}
+
+  #settingsWrap{display:flex;gap:8px;flex-wrap:wrap}
+  .wallThumb{width:120px;height:72px;border-radius:8px;background-size:cover;background-position:center;border:2px solid rgba(255,255,255,0.02);cursor:pointer}
+  .footerNote{font-size:12px;color:var(--muted);margin-top:10px}
+
+  @media(max-width:720px){
+    #startMenu{width:90%;left:5%;bottom:60px}
+    .icons{padding:10px}
+  }
+</style>
+</head>
+<body>
+
+<div id="desktop" tabindex="0">
+  <div style="position:absolute;left:18px;top:18px" class="icons" id="desktopIcons"></div>
+
+  <div id="startMenu">
+    <h3>Start</h3>
+    <div class="startGrid" id="startGrid"></div>
+    <div class="footerNote">Browser OS Demo — persistent settings saved locally.</div>
+  </div>
+
+
+  <div id="windowsContainer"></div>
+
+
+  <div id="taskbar">
+    <div id="startBtn" title="Start (Meta)">☰</div>
+    <div id="taskApps"></div>
+    <div id="tray">
+      <div id="trayIcons">🔔 ⚙️</div>
+      <div id="clock"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+const state = {
+  z: 10,
+  windows: {},
+  wallpaperIndex: parseInt(localStorage.getItem('wall')||'0'),
+  themeDark: (localStorage.getItem('dark')||'1')==='1'
+};
+const wallpapers = [
+  'linear-gradient(135deg,#071426,#001017)',
+  'linear-gradient(120deg,#02071a,#052b56)',
+  'linear-gradient(120deg,#001018,#002b13)',
+  'linear-gradient(120deg,#0b0220,#3a0078)'
+];
+
+const desktop = document.getElementById('desktop');
+const windowsContainer = document.getElementById('windowsContainer');
+const desktopIcons = document.getElementById('desktopIcons');
+const startBtn = document.getElementById('startBtn');
+const startMenu = document.getElementById('startMenu');
+const startGrid = document.getElementById('startGrid');
+const taskApps = document.getElementById('taskApps');
+const clock = document.getElementById('clock');
+
+function setWallpaper(i){
+  state.wallpaperIndex = i % wallpapers.length;
+  desktop.style.background = wallpapers[state.wallpaperIndex];
+  localStorage.setItem('wall', state.wallpaperIndex);
+}
+setWallpaper(state.wallpaperIndex);
+
+
+function tickClock(){
+  const d = new Date();
+  clock.textContent = d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+tickClock();
+setInterval(tickClock, 60000);
+
+const apps = [
+  {id:'terminal', name:'Terminal', icon:'⌁', create:createTerminal},
+  {id:'files', name:'File Explorer', icon:'📁', create:createFiles},
+  {id:'notes', name:'Notes', icon:'📝', create:createNotes},
+  {id:'browser', name:'Browser', icon:'🌐', create:createBrowser},
+  {id:'calc', name:'Calculator', icon:'🧮', create:createCalc},
+  {id:'settings', name:'Settings', icon:'⚙️', create:createSettings},
+  {id:'music', name:'Music', icon:'🎵', create:createMusic},
+  {id:'image', name:'Image Viewer', icon:'🖼️', create:createImage}
+];
+
+apps.forEach(a=>{
+  const ic = document.createElement('div'); ic.className='icon';
+  ic.innerHTML = `<div class="img">${a.icon}</div><div class="label">${a.name}</div>`;
+  ic.onclick = ()=>openApp(a.id);
+  desktopIcons.appendChild(ic);
+
+  const tile = document.createElement('div'); tile.className='startTile';
+  tile.innerHTML = `<div class="ic">${a.icon}</div><div>${a.name}</div>`;
+  tile.onclick = ()=>openApp(a.id);
+  startGrid.appendChild(tile);
+});
+
+startBtn.addEventListener('click', (e)=>{
+  startMenu.style.display = startMenu.style.display === 'block' ? 'none' : 'block';
+});
+document.addEventListener('click', e=>{
+  if(!startMenu.contains(e.target) && e.target!==startBtn) startMenu.style.display='none';
+});
+
+
+function createWindow({id,title, x=120,y=80,w=560,h=340,contentCreator}){
+  const win = document.createElement('div');
+  win.className='window';
+  win.style.left = x+'px'; win.style.top = y+'px'; win.style.width = w+'px'; win.style.height = h+'px';
+  win.style.zIndex = ++state.z;
+  win.dataset.appId = id;
+
+  win.innerHTML = `
+    <div class="titlebar">
+      <div class="title">${title}</div>
+      <div class="winControls">
+        <button class="btn btnMin" title="Minimize">━</button>
+        <button class="btn btnMax" title="Maximize">□</button>
+        <button class="btn btnClose" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="content"></div>
+    <div class="resizer"></div>
+  `;
+
+  windowsContainer.appendChild(win);
+  attachWindowEvents(win);
+  const content = win.querySelector('.content');
+  if(contentCreator) contentCreator(content, win);
+  registerTaskbar(win, title, id);
+  win.focus();
+  return win;
+}
+
+function attachWindowEvents(win){
+  const titlebar = win.querySelector('.titlebar');
+  const btnClose = win.querySelector('.btnClose');
+  const btnMin = win.querySelector('.btnMin');
+  const btnMax = win.querySelector('.btnMax');
+  const resizer = win.querySelector('.resizer');
+
+
+  win.addEventListener('mousedown', ()=>{ win.style.zIndex = ++state.z; });
+
+  let dragging=false, dragOffset={x:0,y:0}, startPos={x:0,y:0};
+  titlebar.addEventListener('mousedown', (ev)=>{
+    dragging=true; win.classList.add('dragging');
+    dragOffset.x = ev.clientX - win.offsetLeft;
+    dragOffset.y = ev.clientY - win.offsetTop;
+  });
+  window.addEventListener('mousemove', (ev)=>{
+    if(dragging){
+      let nx = ev.clientX - dragOffset.x;
+      let ny = ev.clientY - dragOffset.y;
+      nx = Math.max(8, Math.min(window.innerWidth - win.offsetWidth - 8, nx));
+      ny = Math.max(8, Math.min(window.innerHeight - win.offsetHeight - 64, ny));
+      win.style.left = nx + 'px'; win.style.top = ny + 'px';
+    }
+  });
+  window.addEventListener('mouseup', ()=>{ if(dragging){dragging=false; win.classList.remove('dragging');}});
+
+  let resizing=false, startW=0,startH=0, startX=0, startY=0;
+  resizer.addEventListener('mousedown',(e)=>{
+    resizing=true; startW=win.offsetWidth; startH=win.offsetHeight; startX=e.clientX; startY=e.clientY;
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove',(e)=>{
+    if(resizing){
+      const nx = Math.max(200, startW + (e.clientX - startX));
+      const ny = Math.max(120, startH + (e.clientY - startY));
+      win.style.width = nx+'px'; win.style.height = ny+'px';
+    }
+  });
+  window.addEventListener('mouseup', ()=>{resizing=false});
+
+  btnClose.addEventListener('click', ()=>{ closeWindow(win); });
+  btnMin.addEventListener('click', ()=>{ win.style.display='none'; updateTaskActive(win.dataset.appId,false) });
+  btnMax.addEventListener('click', ()=>{
+    if(win.dataset.max === '1'){
+      win.style.left = win.dataset.prevLeft; win.style.top = win.dataset.prevTop;
+      win.style.width = win.dataset.prevWidth; win.style.height = win.dataset.prevHeight;
+      win.dataset.max = '0';
+    } else {
+      win.dataset.prevLeft = win.style.left; win.dataset.prevTop = win.style.top;
+      win.dataset.prevWidth = win.style.width; win.dataset.prevHeight = win.style.height;
+      win.style.left = '8px'; win.style.top = '8px';
+      win.style.width = (window.innerWidth - 16)+'px'; win.style.height = (window.innerHeight - 92)+'px';
+      win.dataset.max = '1';
+    }
+  });
+
+  titlebar.addEventListener('dblclick', ()=> btnMax.click());
+}
+
+function closeWindow(win){
+  const id = win.dataset.appId;
+  const btn = document.querySelector(`.taskAppBtn[data-app="${id}"]`);
+  if(btn) btn.remove();
+  win.remove();
+}
+
+function registerTaskbar(win, title, appId){
+  let existing = document.querySelector(`.taskAppBtn[data-app="${appId}"]`);
+  if(existing){
+    existing.classList.add('active');
+    existing.onclick = ()=>{ toggleWindowVisibility(win); };
+    return;
+  }
+  const btn = document.createElement('button'); btn.className='taskAppBtn active';
+  btn.dataset.app = appId;
+  btn.textContent = title;
+  btn.onclick = ()=>{
+    if(win.style.display==='none'){ win.style.display='block'; win.style.zIndex = ++state.z; updateTaskActive(appId,true)}
+    else { toggleWindowVisibility(win); }
+  };
+  taskApps.appendChild(btn);
+}
+
+function updateTaskActive(appId, active){
+  const btn = document.querySelector(`.taskAppBtn[data-app="${appId}"]`);
+  if(btn) btn.classList.toggle('active', active);
+}
+function toggleWindowVisibility(win){
+  if(win.style.display==='none'){ win.style.display='block'; win.style.zIndex = ++state.z; updateTaskActive(win.dataset.appId,true); }
+  else { win.style.display='none'; updateTaskActive(win.dataset.appId,false); }
+}
+
+
+function openApp(id){
+  const app = apps.find(a=>a.id===id);
+  if(!app) return;
+
+  const existing = Array.from(document.querySelectorAll('.window')).find(w=>w.dataset.appId===id);
+  if(existing){ existing.style.display='block'; existing.style.zIndex = ++state.z; updateTaskActive(id,true); return; }
+  createWindow({id:id,title:app.name,contentCreator:app.create});
+}
+
+
+function createTerminal(container){
+  container.innerHTML = `<div class="terminal" id="termArea"><div id="termText">Welcome to Browser OS terminal\nType "help" and press Enter.\n\n</div><div style="margin-top:8px"><input id="termInput" type="text" placeholder="Type a command..." /></div></div>`;
+  const area = container.querySelector('#termText');
+  const input = container.querySelector('#termInput');
+  input.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ handleCmd(input.value.trim()); input.value=''; }} );
+  function handleCmd(cmd){
+    if(!cmd) return;
+    append(`> ${cmd}`);
+    if(cmd==='help'){ append('apps: terminal, files, notes, browser, calc, settings, music, image'); }
+    else if(cmd==='date'){ append(new Date().toString()); }
+    else if(cmd==='clear'){ area.innerHTML = ''; }
+    else if(cmd.startsWith('open ')){ openApp(cmd.split(' ')[1]); }
+    else append('Unknown command: '+cmd);
+  }
+  function append(txt){ area.innerHTML += txt.replace(/\n/g,'<br>') + '<br>'; area.scrollTop = area.scrollHeight; }
+}
+
+function createFiles(container){
+  container.innerHTML = `<div style="display:flex;gap:10px;height:100%"><div style="width:220px;border-right:1px solid rgba(255,255,255,0.02);padding-right:10px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Folders</div>
+      <div><button class="toolBtn" onclick="alert('This is a demo folder')">My Documents</button></div>
+      <div style="margin-top:10px"><button class="toolBtn" onclick="alert('No files yet')">Pictures</button></div>
+      </div>
+      <div style="flex:1;padding-left:10px"><div style="font-size:13px;color:var(--muted);margin-bottom:8px">Files</div>
+      <div id="fileList"><div style="padding:8px;border-radius:6px;background:rgba(255,255,255,0.01)">readme.txt — This is a demo Browser OS.</div></div></div></div>`;
+}
+
+function createNotes(container){
+  container.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><textarea id="notesArea" style="flex:1;border-radius:8px;padding:10px;background:#071018;border:1px solid rgba(255,255,255,0.02);color:var(--muted)"></textarea>
+  <div style="margin-top:8px;display:flex;gap:8px"><button class="toolBtn" id="saveNotes">Save</button><button class="toolBtn" id="clearNotes">Clear</button></div>
+  </div>`;
+  const ta = container.querySelector('#notesArea');
+  const save = container.querySelector('#saveNotes');
+  const clear = container.querySelector('#clearNotes');
+  ta.value = localStorage.getItem('notes')||'';
+  save.onclick = ()=>{ localStorage.setItem('notes', ta.value); alert('Saved'); }
+  clear.onclick = ()=>{ ta.value=''; }
+}
+
+function createBrowser(container){
+  container.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><div style="display:flex;gap:8px;margin-bottom:8px"><input id="urlField" type="text" placeholder="https://example.com" /><button class="toolBtn" id="goBtn">Go</button></div><div style="flex:1;border-radius:6px;overflow:hidden;"><iframe id="miniBrowser" style="width:100%;height:100%;border:none"></iframe></div></div>`;
+  const urlField = container.querySelector('#urlField');
+  const goBtn = container.querySelector('#goBtn');
+  const iframe = container.querySelector('#miniBrowser');
+  goBtn.addEventListener('click', ()=>{ const u = urlField.value.trim(); if(!u) return; iframe.src = u; });
+  urlField.addEventListener('keydown',(e)=>{ if(e.key==='Enter') goBtn.click(); });
+}
+
+function createCalc(container){
+  container.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><input id="calcDisplay" type="text" style="font-size:20px;padding:8px;margin-bottom:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#071018;color:var(--muted)"/>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+  ${['7','8','9','/','4','5','6','*','1','2','3','-','0','.','=','+'].map(s=>`<button class="toolBtn calcBtn">${s}</button>`).join('')}
+  </div></div>`;
+  const disp = container.querySelector('#calcDisplay');
+  container.querySelectorAll('.calcBtn').forEach(b=>{
+    b.addEventListener('click', ()=> {
+      const val = b.textContent;
+      if(val==='='){ try { disp.value = String(eval(disp.value||'0')); } catch(e){ disp.value='ERR'; } }
+      else disp.value += val;
+    });
+  });
+}
+
+function createSettings(container){
+  container.innerHTML = `<div id="settingsWrap">
+    <div style="min-width:220px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Wallpaper</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="wallList"></div>
+    </div>
+    <div style="min-width:260px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Theme</div>
+      <div style="display:flex;gap:8px"><button class="toolBtn" id="setDark">Dark</button><button class="toolBtn" id="setLight">Light</button></div>
+      <div style="margin-top:12px;color:var(--muted);font-size:13px">Reset demo data</div>
+      <div style="margin-top:6px"><button class="toolBtn" id="resetDemo">Reset</button></div>
+    </div>
+  </div>`;
+  const wallList = container.querySelector('#wallList');
+  wallpapers.forEach((w,i)=>{
+    const el = document.createElement('div'); el.className='wallThumb'; el.style.background = w;
+    el.onclick = ()=> setWallpaper(i);
+    wallList.appendChild(el);
+  });
+  container.querySelector('#setDark').addEventListener('click', ()=>{ localStorage.setItem('dark','1'); alert('Dark theme (demo)');});
+  container.querySelector('#setLight').addEventListener('click', ()=>{ localStorage.setItem('dark','0'); alert('Light theme not implemented');});
+  container.querySelector('#resetDemo').addEventListener('click', ()=>{ localStorage.clear(); location.reload();});
+}
+
+function createMusic(container){
+  container.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><div style="font-size:13px;color:var(--muted);margin-bottom:8px">Sample Player</div>
+  <audio id="audio" controls style="width:100%"><source src="https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"></audio>
+  <div style="margin-top:8px;color:var(--muted)">Demo audio loaded from MDN</div></div>`;
+}
+
+function createImage(container){
+  container.innerHTML = `<div style="display:flex;flex-direction:column;height:100%"><div style="font-size:13px;color:var(--muted);margin-bottom:8px">Image Viewer</div>
+  <div style="flex:1;display:flex;align-items:center;justify-content:center"><img src="https://placekitten.com/800/420" style="max-width:100%;max-height:100%;border-radius:8px" /></div></div>`;
+}
+
+
+window.addEventListener('keydown',(e)=>{
+  // Meta opens start (simulate Windows key)
+  if(e.key === 'Meta'){ startMenu.style.display = startMenu.style.display === 'block' ? 'none' : 'block'; }
+  if(e.key === 'Escape'){
+    const wins = Array.from(document.querySelectorAll('.window')).sort((a,b)=>b.style.zIndex - a.style.zIndex);
+    if(wins.length) closeWindow(wins[0]);
+  }
+});
+
+openApp('files');
+openApp('terminal');
+
+
+desktop.addEventListener('click', ()=> desktop.focus());
+
+</script>
+</body>
+</html>

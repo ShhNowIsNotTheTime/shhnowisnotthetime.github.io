@@ -1,0 +1,292 @@
+<!-- Primer Antivirus for the Primer Project.
+This was made for my Grandpa to use as Avast Antivirus is to confusing for him.
+This program scans files for suspicious characteristics including file extensions,
+file signatures, and simple heuristics. It computes SHA-256 hashes and checks them. 
+
+-->
+
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Primer Antivirus</title>
+<style>
+  :root{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial; color:#111}
+  body{margin:0;background:#f6f7fb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:980px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(20,30,60,.08);padding:20px}
+  h1{margin:0 0 8px;font-size:20px}
+  p.lead{margin:0 0 18px;color:#4b5563}
+  .drop{border:2px dashed #d1d5db;border-radius:8px;padding:18px;text-align:center;background:linear-gradient(180deg,#fff,#fbfdff);cursor:pointer}
+  .controls{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  button{background:#0f62fe;color:white;border:0;padding:10px 14px;border-radius:8px;cursor:pointer}
+  button.ghost{background:#eef2ff;color:#0f62fe;border:1px solid #dbe7ff}
+  .results{margin-top:18px}
+  table{width:100%;border-collapse:collapse}
+  thead th{text-align:left;font-size:12px;padding:8px 6px;color:#374151;border-bottom:1px solid #eef2ff}
+  tbody td{padding:10px 6px;border-bottom:1px solid #f3f4f6;font-size:13px;vertical-align:middle}
+  .tag{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px}
+  .tag.clean{background:#ecfdf5;color:#065f46}
+  .tag.susp{background:#fff7ed;color:#92400e}
+  .tag.mal{background:#fff1f2;color:#7f1d1d}
+  .small{font-size:12px;color:#6b7280}
+  .quarantine-list{margin-top:12px}
+  .hash{font-family:monospace;font-size:12px;color:#374151}
+  a.download{color:#0f62fe;text-decoration:none}
+  .footer{margin-top:12px;color:#6b7280;font-size:13px}
+  .heuristics{margin-top:8px;font-size:13px;color:#374151}
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>Primer Antivirus</h1>
+    <p class="lead">Select or drop files below. This page scans file names, computes SHA-256, and runs lightweight content heuristics. It runs entirely in your browser — nothing is uploaded.</p>
+
+    <div id="dropzone" class="drop" tabindex="0">Click or drop files here to scan.</div>
+
+    <div class="controls">
+      <input id="fileinput" type="file" multiple style="display:none">
+      <button id="openBtn">Choose files</button>
+      <button id="clearBtn" class="ghost">Clear results</button>
+      <button id="exportQuarantine" class="ghost">Download quarantine list (zips not included)</button>
+    </div>
+
+    <div class="results" id="results"></div>
+
+    <div class="footer">
+      <div class="heuristics"><strong>Heuristics used:</strong> file extension checks (.exe/.msi/.js/.vbs/.ps1/.apk etc), executable signatures, suspicious JS strings (eval, atob, unescape, fromCharCode), long inline base64, and hash blacklist check (editable).</div>
+      <p class="small">This can be used to check files but always double check with another antivirus until I work on this more</p>
+    </div>
+  </div>
+
+<script>
+(async function(){
+  const BLACKLIST = new Set([
+
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  ]);
+
+
+  const SUSP_EXT = ['.exe','.msi','.dll','.scr','.bat','.cmd','.vbs','.js','.jar','.ps1','.apk','.com'];
+  const SUSP_PATTERNS = [/eval\s*\(/i, /atob\s*\(/i, /fromCharCode\s*\(/i, /unescape\s*\(/i, /document\.write\s*\(/i, /window\.location/i, /XMLHttpRequest/i];
+  const LARGE_BASE64_THRESHOLD = 6000; 
+
+
+  const dropzone = document.getElementById('dropzone');
+  const fileinput = document.getElementById('fileinput');
+  const openBtn = document.getElementById('openBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const resultsEl = document.getElementById('results');
+  const exportQuarantine = document.getElementById('exportQuarantine');
+
+  let quarantine = []; 
+
+
+  function hex(buffer){
+    const b = new Uint8Array(buffer);
+    return Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function sha256(buffer){
+    const digest = await crypto.subtle.digest('SHA-256', buffer);
+    return hex(digest);
+  }
+
+  function extFromName(n){
+    const idx = n.lastIndexOf('.');
+    return idx>=0 ? n.slice(idx).toLowerCase() : '';
+  }
+
+  function readArrayBuffer(file){
+    return new Promise((resolve,reject)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>resolve(fr.result);
+      fr.onerror = ()=>reject(fr.error);
+      fr.readAsArrayBuffer(file);
+    });
+  }
+
+  function readAsText(file, maxBytes=2000000){
+    return new Promise((resolve)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>resolve(fr.result);
+      fr.onerror = ()=>resolve(null);
+      if (file.size > maxBytes) {
+        const slice = file.slice(0, maxBytes);
+        fr.readAsText(slice);
+      } else {
+        fr.readAsText(file);
+      }
+    });
+  }
+
+  function scanTextForSuspicious(text){
+    if(!text) return {matches:[],base64:false};
+    const matches = [];
+    for(const rx of SUSP_PATTERNS){
+      if(rx.test(text)) matches.push(rx.toString());
+    }
+    const b64Match = text.match(/[A-Za-z0-9+/=]{200,}/g);
+    const hasLongB64 = b64Match && b64Match.some(s => s.length > LARGE_BASE64_THRESHOLD);
+    return {matches,base64:hasLongB64};
+  }
+  function renderResults(rows){
+    if(rows.length === 0){
+      resultsEl.innerHTML = '<p class="small">No results yet.</p>';
+      return;
+    }
+    let html = '<table><thead><tr><th>File</th><th>Size</th><th>SHA-256</th><th>Score</th><th>Notes</th><th>Actions</th></tr></thead><tbody>';
+    for(const r of rows){
+      html += `<tr>
+        <td><strong>${escapeHtml(r.name)}</strong><div class="small">${escapeHtml(r.type || '')}</div></td>
+        <td>${formatBytes(r.size)}</td>
+        <td class="hash">${r.hash || '—'}</td>
+        <td>${r.tagHTML}</td>
+        <td>${escapeHtml(r.notes)}</td>
+        <td>${r.actionsHTML}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    resultsEl.innerHTML = html;
+    document.querySelectorAll('.quarantine-btn').forEach(btn=>{
+      btn.addEventListener('click', (ev)=>{
+        const idx = Number(btn.dataset.idx);
+        quarantineFile(idx);
+      });
+    });
+    document.querySelectorAll('.download-btn').forEach(btn=>{
+      btn.addEventListener('click', (ev)=>{
+        const url = btn.dataset.url;
+        const name = btn.dataset.name;
+        downloadURL(url, name);
+      });
+    });
+  }
+  function escapeHtml(s){
+    if(!s) return '';
+    return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  }
+  function formatBytes(n){
+    if(n<1024) return n+' B';
+    if(n<1024*1024) return (n/1024).toFixed(1)+' KB';
+    if(n<1024*1024*1024) return (n/1024/1024).toFixed(1)+' MB';
+    return (n/1024/1024/1024).toFixed(2)+' GB';
+  }
+
+  function downloadBlob(blob, name){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  }
+  function downloadURL(url, name){
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function quarantineFile(idx){
+    const row = lastScanResults[idx];
+    if(!row) return;
+    const blob = row.blob;
+    const qName = row.name + '.quarantine';
+    quarantine.push({name:qName, blob});
+    alert('Quarantined: ' + qName);
+  }
+
+  exportQuarantine.addEventListener('click', ()=>{
+    if(quarantine.length === 0){ alert('No files quarantined.'); return; }
+    quarantine.forEach(item=>{
+      downloadBlob(item.blob, item.name);
+    });
+    alert('Downloaded quarantined files (separately). For single-archive support run a server-side zip utility.');
+  });
+  let lastScanResults = [];
+
+  async function scanFiles(fileList){
+    const files = Array.from(fileList);
+    const rows = [];
+    for(let i=0;i<files.length;i++){
+      const f = files[i];
+      const row = {name:f.name,size:f.size,type:f.type,notes:'',hash:null,score:0,actionsHTML:'',tagHTML:'',blob:f};
+      try{
+        const ext = extFromName(f.name);
+        if(SUSP_EXT.includes(ext)){
+          row.notes += `Suspicious extension (${ext}). `;
+          row.score += 40;
+        }
+        const ab = await readArrayBuffer(f);
+        row.hash = await sha256(ab);
+        if(BLACKLIST.has(row.hash)){
+          row.notes += 'Matches blacklist hash. ';
+          row.score += 100;
+        }
+        const head = new Uint8Array(ab.slice(0,8));
+        const sig = String.fromCharCode(...head.slice(0,4));
+        if(sig === 'MZ\u0000\u0000' || head[0] === 0x4d && head[1] === 0x5a){
+          row.notes += 'PE executable signature detected. ';
+          row.score += 60;
+        } else if(head[0] === 0x50 && head[1] === 0x4b){
+          row.notes += 'ZIP/PK archive detected. ';
+  
+          row.score += 10;
+        }
+        const text = await readAsText(f, 2000000);
+        const {matches, base64} = scanTextForSuspicious(text);
+        if(matches.length) {
+          row.notes += 'Suspicious text patterns: ' + matches.join(', ') + '. ';
+          row.score += matches.length * 25;
+        }
+        if(base64){
+          row.notes += 'Long embedded base64 detected. ';
+          row.score += 30;
+        }
+
+        let tag='clean';
+        if(row.score >= 100 || row.notes.includes('blacklist')) tag='mal';
+        else if(row.score >= 50) tag='susp';
+        else tag='clean';
+
+        row.tagHTML = `<span class="tag ${tag === 'clean' ? 'clean' : tag === 'susp' ? 'susp' : 'mal'}">${tag.toUpperCase()}</span>`;
+        const blobURL = URL.createObjectURL(f);
+        const safeName = f.name.replaceAll('"','').replaceAll("'",'');
+        let actions = `<a class="download-btn download" data-url="${blobURL}" data-name="${safeName}" href="${blobURL}" download="${safeName}">Download</a>`;
+        if(tag !== 'clean'){
+          actions += ` &nbsp; <button class="quarantine-btn" data-idx="${rows.length}">Quarantine</button>`;
+        }
+        row.actionsHTML = actions;
+
+      } catch(err){
+        row.notes += 'Error scanning: ' + err.message;
+      }
+
+      rows.push(row);
+      if(rows.length > 200) break;
+    }
+
+    lastScanResults = rows;
+    renderResults(rows);
+    setTimeout(()=> {
+      document.querySelectorAll('.download-btn').forEach(a=>{
+        URL.revokeObjectURL(a.href);
+      });
+    }, 60_000);
+  }
+  dropzone.addEventListener('click', ()=>fileinput.click());
+  openBtn.addEventListener('click', ()=>fileinput.click());
+  fileinput.addEventListener('change', (e)=>scanFiles(e.target.files));
+  clearBtn.addEventListener('click', ()=>{ resultsEl.innerHTML=''; lastScanResults = []; quarantine=[]; });
+
+  dropzone.addEventListener('dragover', (e)=>{ e.preventDefault(); dropzone.style.borderColor='#0f62fe'; });
+  dropzone.addEventListener('dragleave', ()=>{ dropzone.style.borderColor=''; });
+  dropzone.addEventListener('drop', (e)=>{ e.preventDefault(); dropzone.style.borderColor=''; const dt = e.dataTransfer; if(dt.files && dt.files.length) scanFiles(dt.files); });
+  dropzone.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') fileinput.click(); });
+  renderResults([]);
+})();
+</script>
+</body>
+</html>

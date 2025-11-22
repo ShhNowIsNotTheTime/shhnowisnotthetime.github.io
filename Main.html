@@ -1,0 +1,408 @@
+<!-- New GUI to replace Primer.
+Primer was abandoned due to various reasons, this is the new and improved version, along with being more professional.
+Created by @ShhNowIsNotTheTime on GitHub and YouTube
+11/22/2025 4:43 AM 
+
+If the vibe aint cool, no you wont find me.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shh-Gui</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #000000;
+    color: #dbdbdb;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 60px;
+    background-color: #1a1a1a;
+    transition: width 0.3s ease;
+    border-right: 2px solid #444;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 20px;
+    overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  }
+
+  .sidebar::-webkit-scrollbar {
+  display: none;
+  }
+  .sidebar:hover { width: 200px; }
+  .sidebar h2 { margin-bottom: 20px; white-space: nowrap; }
+  .sidebar a, .sidebar button {
+    color: #fff;
+    text-decoration: none;
+    padding: 15px 20px;
+    display: block;
+    width: 100%;
+    background:none;
+    border:none;
+    cursor:pointer;
+    text-align:left;
+    font-size:1rem;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+  .sidebar a:hover, .sidebar button:hover { background-color:#a53311; }
+
+
+  .main {
+    flex:1;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  header {
+    font-size:1.8rem;
+    font-weight:bold;
+    padding:20px;
+    text-align:center;
+    background-color:#1a1a1a;
+    border-bottom:2px solid #444;
+  }
+
+
+  .frame {
+    position:absolute;
+    top:0; left:0; right:0; bottom:0;
+    background-color:#222;
+    padding:40px;
+    display:none;
+    overflow-y:auto;
+    transition: opacity 0.3s ease;
+  }
+
+  #searchContainer {
+    position: relative;
+    margin: 20px 0;
+    width:0;
+    overflow:hidden;
+    transition: width 0.3s ease;
+  }
+  #searchInput {
+    padding:10px;
+    font-size:1rem;
+    border:2px solid #a53311;
+    border-radius:5px;
+    width:200px;
+  }
+
+  .rainbow-wave span {
+  display: inline-block;
+  animation: rainbowWave 3s linear infinite;
+}
+
+.rainbow-wave2 span {
+  display: inline-block;
+  animation: rainbowWave2 3s linear infinite;
+}
+
+@keyframes rainbowWave {
+ 0%   { color: hsl(0, 100%, 50%); }
+  10%  { color: hsl(36, 100%, 50%); }
+  20%  { color: hsl(60, 100%, 50%); }
+  30%  { color: hsl(120, 100%, 50%); }
+  40%  { color: hsl(180, 100%, 50%); }
+  50%  { color: hsl(240, 100%, 50%); } 
+  60%  { color: hsl(275, 100%, 50%); } 
+  70%  { color: hsl(300, 100%, 50%); } 
+  80%  { color: hsl(320, 100%, 50%); } 
+  90%  { color: hsl(350, 100%, 50%); }
+  100% { color: hsl(0, 100%, 50%); } 
+}
+
+
+@keyframes rainbowWave2 {
+  0%   { color: #D2B48C; } 
+  10%  { color: #000000; } 
+  20%  { color: #FFFFFF; } 
+  30%  { color: #FF0000; } 
+  40%  { color: #555555; } 
+  50%  { color: #CCCCCC; } 
+  60%  { color: #FFD700; } 
+  70%  { color: #9FE2BF; } 
+  80%  { color: #FFA500; }
+  90%  { color: #D2B48C; } 
+  100% { color: #D2B48C; } 
+}
+
+  #searchContainer.active { width:220px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h2 id="menuTitle">Shh-Gui</h2>
+  <h5 id="menuSubtitle">@ShhNowIsNotTheTime</h5>
+  <br>
+  <p>This is Scrollable</p>
+  <br>
+  <a href="#" data-frame="home">Home</a>
+  <a href="#" data-frame="a">About Us</a>
+  <a href="#" data-frame="a1">Terms And Conditions</a>
+  <a href="#" data-frame="b">FAQ</a>
+  <a href="#" data-frame="c">Antivirus</a>
+  <a href="#" data-frame="d">Animation</a>
+  <a href="#" data-frame="e">Games</a>
+  <a href="#" data-frame="f">Video Editor</a>
+  <a href="#" data-frame="g">Playground</a>
+  <a href="#" data-frame="h">Minecraft</a>
+  <a href="#" data-frame="i">Filters</a>
+  <a href="#" data-frame="j">Stuff thats coming soon</a>
+  <button id="searchBtn">🔍 Search</button>
+</div>
+
+<script>
+function rainbowize(element) {
+  element.innerHTML = element.textContent.split('').map((letter, index) => {
+    if (letter === ' ') return ' '; 
+    return `<span style="animation-delay: ${index * 0.1}s">${letter}</span>`;
+  }).join('');
+}
+
+const menuTitle = document.getElementById('menuTitle');
+menuTitle.classList.add('rainbow-wave');
+rainbowize(menuTitle);
+</script>
+
+<script>
+function rainbowized(element) {
+  element.innerHTML = element.textContent.split('').map((letter, index) => {
+    if (letter === ' ') return ' '; 
+    return `<span style="animation-delay: ${index * 0.1}s">${letter}</span>`;
+  }).join('');
+}
+
+const menuSub = document.getElementById('menuSubtitle');
+menuSub.classList.add('rainbow-wave2');
+rainbowized(menuSub);
+</script>
+
+<div class="main">
+  <header>Shh-Gui</header>
+  <br>
+  <p>Welcome to the Shh-Gui website!</p>
+  <br>
+  <p>Use the sidebar to navigate through different sections.</p>
+  <br>
+  <p>Please Read the Terms and Conditions. Along with the Rules!</p>
+  <br>
+
+
+  <div id="home" class="frame">
+    <h1>Home</h1>
+    <br>
+    <h2>Welcome to the website!</h2>
+    <br>
+    <p>On this website you can find games, custom applications, and more.</p>
+    <br> 
+    <p>Use the sidebar to navigate through different sections.</p>
+    <br> 
+    <p>Copyright and stuff:</p>
+    <br> 
+    <p>This website is for educational purposes only to show everything I have been able to make/ do</p>
+    <br> 
+    <p>Minecraft is copyright Microsoft, Mojang AB. EaglercraftX is copyright Eaglercraft, lax1dude, ayunami2000, anyone else I missed.</p>
+    <br>
+    <p>Blooket Hacks is copyright 05Konz</p>
+    <br>
+    <p>Questions or Comments: email me at sebbesen44@gmail.com</p>
+    <br>
+    <p>(C) 2025 ShhNowIsNotTheTime     All Rights Reserved</p>
+    <p>Github. YouTube. Discord.</p>
+   
+  </div>
+
+  <div id="a" class="frame">
+    <h2>About</h2>
+    <p>About us content...</p>
+  </div>
+
+  <div id="a1" class="frame">
+    <h2>Terms And Conditions</h2>
+    <p>Welcome to Shh-Gui. By accessing or using this website, you agree to be bound by these Terms and Conditions (“Terms”). If you do not agree with any part of these Terms, do not use the website.</p>
+    <br>
+    <p>1. Use of Website: You agree to use this website for lawful purposes only. You shall not engage in any activity that may harm, disrupt, or interfere with the functioning of the website or its services.</p>
+    <br>
+    <p>2. Property: All content is made by @ShhNowIsNotTheTime, except for: Minecraft, Blooket Hacks, Croxy Proxy</p>
+    <p>Minecraft is copyright Microsoft, Mojang AB. EaglercraftX is copyright Eaglercraft, lax1dude, ayunami2000, anyone else I missed.</p>
+    <p>Blooket Hacks is copyright 05Konz</p>
+    <p>Croxy Proxy is copyright croxyproxy.com</p>
+    <br>
+    <p>3. Use of Source Code: This project is for educational purposes only. You may not use, distribute, or modify the source code without permission.</p>
+    <br>
+    <p>4. Limitation of Liability: Shh-Gui shall not be liable for any direct, indirect, incidental, special, or consequential damages arising out of or in connection with the use or inability to use this website.</p>
+    <br>
+    <p>5. Changes to Terms: We reserve the right to modify these Terms at any time. Your continued use of the website after any changes constitutes your acceptance of the new Terms.</p>
+    <br>
+    <p>6. By using this Website, you agree to these Terms And Conditions along with the rules</p>
+  </div>
+
+
+
+  <div id="b" class="frame">
+    <h2>FAQ</h2>
+    <p>FAQ content...</p>
+  </div>
+
+
+  <div id="c" class="frame">
+    <h2>Primer Antivirus</h2>
+    <p>Click below to load the application:</p>
+    <a href="#" onclick="openApp('antivirusFrame','antivirus.html')">Application</a>
+    <iframe id="antivirusFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+  <div id="d" class="frame">
+    <h2>Animation</h2>
+    <a href="#" onclick="openApp('animationFrame','Animate.html')">Application</a>
+    <iframe id="animationFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+  <div id="e" class="frame">
+    <h2>Games</h2>
+    <a href="#" onclick="openApp('gamesFrame','games.html')">Application</a>
+    <iframe id="gamesFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+   <div id="f" class="frame">
+    <h2>Video Editor</h2>
+    <a href="#" onclick="openApp('videoEditorFrame','PrimerPlus.html')">Application</a>
+    <iframe id="videoEditorFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+
+  <div id="g" class="frame">
+    <h2>Playground</h2>
+    <a href="#" onclick="openApp('playgroundFrame','Playground.html')">Application</a>
+    <iframe id="playgroundFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+  <div id="h" class="frame">
+    <h2>Minecraft</h2>
+    <a href="#" onclick="openApp('minecraftFrame','Minecraft.html')">Application</a>
+    
+    <button onclick="toggleFullscreen('minecraftFrame')">Toggle Fullscreen</button>
+    
+    <iframe id="minecraftFrame" 
+            style="width:100%;height:400px;border:none;display:none;"
+            onclick="this.focus()"
+            tabindex="0"></iframe>
+</div>
+
+<script>
+let escHoldTimer;
+
+function openApp(frameId, src) {
+    const frame = document.getElementById(frameId);
+    frame.style.display = 'block';
+    frame.src = src;
+    frame.focus(); 
+}
+
+function toggleFullscreen(frameId) {
+    const frame = document.getElementById(frameId);
+    
+    if (document.fullscreenElement === frame) {
+        alert("Hold Escape to exit fullscreen");
+    } else {
+        frame.requestFullscreen().then(() => {
+            frame.focus();
+        });
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.fullscreenElement) {
+        if (!escHoldTimer) {
+            escHoldTimer = setTimeout(() => {
+                document.exitFullscreen();
+                escHoldTimer = null;
+            }, 1000); 
+        }
+    }
+});
+
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Escape') {
+        clearTimeout(escHoldTimer);
+        escHoldTimer = null;
+    }
+});
+
+document.addEventListener('fullscreenchange', () => {
+    const frame = document.getElementById('minecraftFrame');
+    if (document.fullscreenElement === frame) {
+        frame.focus();
+    }
+});
+</script>
+
+
+  <div id="i" class="frame">
+    <h2>Playground</h2>
+    <a href="#" onclick="openApp('filtersFrame','Filters.html')">Application</a>
+    <iframe id="filtersFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+  <div id="j" class="frame">
+    <h2>Coming Soon Stuff :></h2>
+    <a href="#" onclick="openApp('soonFrame','soon.html')">Application</a>
+    <iframe id="soonFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
+
+  <div id="searchContainer">
+    <input type="text" id="searchInput" placeholder="Type to search...">
+  </div>
+</div>
+
+<script>
+const searchBtn = document.getElementById('searchBtn');
+const searchContainer = document.getElementById('searchContainer');
+
+searchBtn.addEventListener('click', () => {
+  searchContainer.classList.toggle('active');
+  if(searchContainer.classList.contains('active')) {
+    document.getElementById('searchInput').focus();
+  }
+});
+
+const sidebarLinks = document.querySelectorAll('.sidebar a[data-frame]');
+const frames = document.querySelectorAll('.frame');
+
+sidebarLinks.forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = link.dataset.frame;
+
+    frames.forEach(frame => frame.style.display='none');
+    const frameToShow = document.getElementById(target);
+    frameToShow.style.display='block';
+  });
+});
+
+
+function openApp(iframeId, htmlFile) {
+  const iframe = document.getElementById(iframeId);
+  iframe.style.display = 'block';
+  iframe.src = htmlFile; 
+}
+</script>
+</body>
+</html>

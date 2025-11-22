@@ -1,0 +1,184 @@
+<!-- 
+ 
+Primer Physics Simulator HTML document for the Primer project.
+oogabooga
+
+God help me, im changing from a normal human into a non normal human ( no, im not gay, I will never be nor a furry, I will never be a furry or a gay person)
+I don't really miss you, but I haven't tried yet
+
+
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physics Simulator</title>
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #f0f0f0;
+  }
+  header {
+    background: #333;
+    color: white;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    font-size: 24px;
+  }
+  #controls {
+    margin: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  label {
+    font-weight: bold;
+  }
+  input[type="number"] {
+    width: 60px;
+  }
+  button {
+    padding: 5px 10px;
+    cursor: pointer;
+    border: none;
+    background: #28a745;
+    color: white;
+    border-radius: 5px;
+  }
+  canvas {
+    border: 2px solid #333;
+    background: white;
+    display: block;
+    margin-bottom: 20px;
+  }
+</style>
+</head>
+<body>
+
+<header>Physics Simulator</header>
+
+<div id="controls">
+  <label>Gravity: <input type="number" id="gravity" value="0.5" step="0.1"></label>
+  <label>Mass: <input type="number" id="mass" value="10" step="1"></label>
+  <button id="addBall">Add Ball</button>
+  <button id="reset">Reset</button>
+</div>
+
+<canvas id="canvas" width="800" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const gravityInput = document.getElementById('gravity');
+const massInput = document.getElementById('mass');
+const addBallBtn = document.getElementById('addBall');
+const resetBtn = document.getElementById('reset');
+
+let balls = [];
+
+class Ball {
+  constructor(x, y, radius, mass, color) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.mass = mass;
+    this.color = color;
+    this.vx = (Math.random() - 0.5) * 5;
+    this.vy = 0;
+  }
+
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = this.color;
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  update() {
+    this.vy += parseFloat(gravityInput.value); // gravity
+    this.x += this.vx;
+    this.y += this.vy;
+
+
+    if(this.y + this.radius > canvas.height){
+      this.y = canvas.height - this.radius;
+      this.vy *= -0.7; 
+    }
+
+
+    if(this.x + this.radius > canvas.width){
+      this.x = canvas.width - this.radius;
+      this.vx *= -1;
+    }
+    if(this.x - this.radius < 0){
+      this.x = this.radius;
+      this.vx *= -1;
+    }
+  }
+}
+
+
+function handleCollisions() {
+  for(let i=0; i<balls.length; i++){
+    for(let j=i+1; j<balls.length; j++){
+      let dx = balls[j].x - balls[i].x;
+      let dy = balls[j].y - balls[i].y;
+      let dist = Math.sqrt(dx*dx + dy*dy);
+      if(dist < balls[i].radius + balls[j].radius){
+
+        let angle = Math.atan2(dy, dx);
+        let totalMass = balls[i].mass + balls[j].mass;
+
+        let v1 = {x: balls[i].vx, y: balls[i].vy};
+        let v2 = {x: balls[j].vx, y: balls[j].vy};
+
+        balls[i].vx = (v1.x*(balls[i].mass - balls[j].mass) + 2*balls[j].mass*v2.x)/totalMass;
+        balls[i].vy = (v1.y*(balls[i].mass - balls[j].mass) + 2*balls[j].mass*v2.y)/totalMass;
+        balls[j].vx = (v2.x*(balls[j].mass - balls[i].mass) + 2*balls[i].mass*v1.x)/totalMass;
+        balls[j].vy = (v2.y*(balls[j].mass - balls[i].mass) + 2*balls[i].mass*v1.y)/totalMass;
+
+        let overlap = balls[i].radius + balls[j].radius - dist;
+        balls[i].x -= Math.cos(angle) * overlap/2;
+        balls[i].y -= Math.sin(angle) * overlap/2;
+        balls[j].x += Math.cos(angle) * overlap/2;
+        balls[j].y += Math.sin(angle) * overlap/2;
+      }
+    }
+  }
+}
+
+function animate() {
+  ctx.clearRect(0,0,canvas.width, canvas.height);
+  balls.forEach(ball => {
+    ball.update();
+    ball.draw();
+  });
+  handleCollisions();
+  requestAnimationFrame(animate);
+}
+
+addBallBtn.addEventListener('click', () => {
+  const radius = parseFloat(massInput.value);
+  const color = `hsl(${Math.random()*360}, 80%, 50%)`;
+  const ball = new Ball(Math.random()*(canvas.width-2*radius)+radius, 50, radius, radius, color);
+  balls.push(ball);
+});
+
+resetBtn.addEventListener('click', () => {
+  balls = [];
+});
+
+animate();
+</script>
+
+</body>
+</html>

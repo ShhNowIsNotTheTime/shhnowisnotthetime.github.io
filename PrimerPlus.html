@@ -1,0 +1,222 @@
+<!--
+PrimerPlus HTML document for the Primer project.
+
+I said, our heads were filled with things that didn't really matter anyway-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Web Premiere-Style Video Editor (Working)</title>
+<style>
+body { margin:0; font-family:sans-serif; background:#111; color:white; }
+#app { display:flex; flex-direction:column; height:100vh; }
+#header { padding:10px; background:#1a1a1a; display:flex; align-items:center; gap:10px; }
+#videoPanel { flex:1; position:relative; background:black; display:flex; justify-content:center; align-items:center; }
+video { max-width:100%; max-height:100%; }
+canvas { position:absolute; top:0; left:0; }
+.textLayer { position:absolute; cursor:move; user-select:none; }
+#timeline { background:#222; height:100px; overflow-x:auto; display:flex; align-items:center; gap:5px; padding:5px; }
+.layerBlock { background:rgba(6,182,212,0.5); color:white; padding:2px 4px; border-radius:2px; cursor:pointer; }
+#inspector { background:#1a1a1a; padding:10px; width:250px; }
+input, select { width:100%; margin-bottom:5px; }
+#controls { display:flex; gap:10px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <input type="file" id="videoInput" accept="video/*">
+    <div id="controls">
+      <button id="playPause">Play/Pause</button>
+      <button id="addText">Add Text</button>
+      <button id="exportBtn">Export WebM file</button>
+    </div>
+  </div>
+  <div id="videoPanel">
+    <video id="video" controls></video>
+    <canvas id="canvas"></canvas>
+  </div>
+  <div style="display:flex;">
+    <div id="timeline"></div>
+    <div id="inspector">
+      <h3>Selected Layer</h3>
+      <label>Text:</label><input type="text" id="textContent"><br>
+      <label>Font Size:</label><input type="number" id="fontSize" value="36"><br>
+      <label>Color:</label><input type="color" id="textColor" value="#ffffff"><br>
+      <label>Opacity:</label><input type="range" id="opacity" min="0" max="1" step="0.05" value="1"><br>
+      <label>Start Time (s):</label><input type="number" id="startTime" value="0" step="0.01"><br>
+      <label>End Time (s):</label><input type="number" id="endTime" value="5" step="0.01"><br>
+    </div>
+  </div>
+</div>
+
+<script>
+const video=document.getElementById("video");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const videoInput=document.getElementById("videoInput");
+const playPauseBtn=document.getElementById("playPause");
+const addTextBtn=document.getElementById("addText");
+const exportBtn=document.getElementById("exportBtn");
+const timeline=document.getElementById("timeline");
+const textContent=document.getElementById("textContent");
+const fontSizeInput=document.getElementById("fontSize");
+const textColorInput=document.getElementById("textColor");
+const opacityInput=document.getElementById("opacity");
+const startTimeInput=document.getElementById("startTime");
+const endTimeInput=document.getElementById("endTime");
+
+let layers=[];
+let selectedLayer=null;
+let fps=60;
+videoInput.addEventListener("change",()=>{
+  const file=videoInput.files[0];
+  if(!file) return;
+  video.src=URL.createObjectURL(file);
+});
+playPauseBtn.addEventListener("click",()=>{if(video.paused) video.play(); else video.pause();});
+
+addTextBtn.addEventListener("click",()=>{
+  const div=document.createElement("div");
+  div.className="textLayer";
+  div.textContent="New Text";
+  div.style.left="50px";
+  div.style.top="50px";
+  div.style.fontSize="36px";
+  div.style.color="#ffffff";
+  div.style.opacity="1";
+  document.getElementById("videoPanel").appendChild(div);
+  
+  const layer={
+    dom:div,
+    content:"New Text",
+    x:50,
+    y:50,
+    size:36,
+    color:"#ffffff",
+    opacity:1,
+    start:0,
+    end:5
+  };
+  layers.push(layer);
+  selectedLayer=layer;
+  loadInspector(layer);
+  let dragging=false, offsetX=0, offsetY=0;
+  div.addEventListener("mousedown",(e)=>{
+    dragging=true;
+    offsetX=e.offsetX; offsetY=e.offsetY;
+  });
+  document.addEventListener("mousemove",(e)=>{
+    if(dragging){
+      const rect=canvas.getBoundingClientRect();
+      layer.x=e.clientX-rect.left-offsetX;
+      layer.y=e.clientY-rect.top-offsetY;
+      div.style.left=layer.x+"px";
+      div.style.top=layer.y+"px";
+    }
+  });
+  document.addEventListener("mouseup",()=>{dragging=false;});
+  
+  addTimelineBlock(layer);
+});
+
+function loadInspector(layer){
+  textContent.value=layer.content;
+  fontSizeInput.value=layer.size;
+  textColorInput.value=layer.color;
+  opacityInput.value=layer.opacity;
+  startTimeInput.value=layer.start;
+  endTimeInput.value=layer.end;
+}
+[textContent,fontSizeInput,textColorInput,opacityInput,startTimeInput,endTimeInput].forEach(input=>{
+  input.addEventListener("input",()=>{
+    if(!selectedLayer) return;
+    selectedLayer.content=textContent.value;
+    selectedLayer.size=parseInt(fontSizeInput.value);
+    selectedLayer.color=textColorInput.value;
+    selectedLayer.opacity=parseFloat(opacityInput.value);
+    selectedLayer.start=parseFloat(startTimeInput.value);
+    selectedLayer.end=parseFloat(endTimeInput.value);
+    selectedLayer.dom.textContent=selectedLayer.content;
+    selectedLayer.dom.style.fontSize=selectedLayer.size+"px";
+    selectedLayer.dom.style.color=selectedLayer.color;
+    selectedLayer.dom.style.opacity=selectedLayer.opacity;
+    updateTimelineBlock(selectedLayer);
+  });
+});
+function addTimelineBlock(layer){
+  const block=document.createElement("div");
+  block.className="layerBlock";
+  block.textContent=layer.content;
+  timeline.appendChild(block);
+  layer.timelineBlock=block;
+  block.addEventListener("click",()=>{selectedLayer=layer; loadInspector(layer);});
+}
+
+function updateTimelineBlock(layer){
+  if(layer.timelineBlock){
+    layer.timelineBlock.textContent=layer.content;
+  }
+}
+function draw(){
+  if(video.videoWidth && video.videoHeight){
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const t=video.currentTime;
+    layers.forEach(layer=>{
+      if(t>=layer.start && t<=layer.end){
+        ctx.save();
+        ctx.globalAlpha=layer.opacity;
+        ctx.fillStyle=layer.color;
+        ctx.font=layer.size+"px sans-serif";
+        ctx.fillText(layer.content,layer.x,layer.y);
+        ctx.restore();
+      }
+    });
+  }
+  requestAnimationFrame(draw);
+}
+draw();
+exportBtn.addEventListener("click",async()=>{
+  if(!video.src) return alert("Load video first");
+  canvas.width=video.videoWidth;
+  canvas.height=video.videoHeight;
+  
+  const stream=canvas.captureStream(fps);
+  const recorder=new MediaRecorder(stream,{mimeType:"video/webm;codecs=vp9"});
+  const chunks=[];
+  recorder.ondataavailable=e=>{if(e.data.size>0) chunks.push(e.data)};
+  recorder.onstop=()=>{
+    const blob=new Blob(chunks,{type:"video/webm"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="export_60fps.webm";
+    a.click();
+  };
+  recorder.start();
+  
+  for(let t=0;t<video.duration;t+=1/fps){
+    video.currentTime=t;
+    await new Promise(r=>video.onseeked=r);
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const current=t;
+    layers.forEach(layer=>{
+      if(current>=layer.start && current<=layer.end){
+        ctx.save();
+        ctx.globalAlpha=layer.opacity;
+        ctx.fillStyle=layer.color;
+        ctx.font=layer.size+"px sans-serif";
+        ctx.fillText(layer.content,layer.x,layer.y);
+        ctx.restore();
+      }
+    });
+    await new Promise(r=>setTimeout(r,1000/fps));
+  }
+  
+  recorder.stop();
+});
+</script>
+</body>
+</html>
