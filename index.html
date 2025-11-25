@@ -141,6 +141,29 @@ If the vibe aint cool, no you wont find me.
   100% { color: #D2B48C; } 
 }
 
+
+.minecraft-splash {
+    position: absolute;
+    top: 10px;
+    right: 40px;
+    font-size: 15px; 
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 3px 3px 0px #000000;
+    animation: mcBounce 1.4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+
+@keyframes mcBounce {
+    0%   { transform: scale(1); }
+    25%  { transform: scale(1.25, 0.85); }
+    50%  { transform: scale(1.4); }
+    75%  { transform: scale(1.25, 0.9); }
+    100% { transform: scale(1); }
+}
+
+
   #searchContainer.active { width:220px; }
 </style>
 </head>
@@ -165,6 +188,7 @@ If the vibe aint cool, no you wont find me.
   <a href="#" data-frame="i">Filters</a>
   <a href="#" data-frame="j">Stuff thats coming soon</a>
   <a href="#" data-frame="k">Windows 11</a>
+  <a href="#" data-frame="l">How to play Fortnite</a>
   <button id="searchBtn">🔍 Search</button>
 </div>
 
@@ -206,6 +230,7 @@ rainbowized(menuSub);
 
 
   <div id="home" class="frame">
+    <div class="minecraft-splash" id="mcSplash"></div>
     <h1>Home</h1>
     <br>
     <h2>Welcome to the website!</h2>
@@ -377,6 +402,12 @@ document.addEventListener('fullscreenchange', () => {
     <iframe id="WindowsFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
   </div>
 
+  <div id="l" class="frame">
+    <h2>How to play Fortnite</h2>
+    <a href="#" onclick="openApp('FortniteFrame','fortnite.html')">Application</a>
+    <iframe id="FortniteFrame" style="width:100%;height:400px;border:none;display:none;"></iframe>
+  </div>
+
 
   <div id="searchContainer">
     <input type="text" id="searchInput" placeholder="Type to search...">
@@ -414,6 +445,104 @@ function openApp(iframeId, htmlFile) {
   iframe.style.display = 'block';
   iframe.src = htmlFile; 
 }
+</script>
+
+<script>
+const minecraftSplashes = [
+    "I said, our heads were filled with things that didn't really matter anyway.",
+    "I say, tell me, tell me, tell me, where do the boys go?",
+    "I don't really miss you, but I haven't tried yet.",
+    "Another fine edition of you!",
+    "If the vibe aint cool, no you wont find me.",
+    "You dont know how to love me yet!",
+    "Learn from your mistakes is my only advice.",
+    "Perhaps you are just not ready.",
+    "You and I.",
+    "For a while.",
+    "You think you know me? Well guess what, you don't.",
+    "Tomorrow is just tomorrow.",
+    "As I get on in age, no no no no.",
+    "Im Swedish Norwegian ya.",
+    "Just because my parents are from upper Michigan doesnt mean I am a lumberjack.",
+    "Isaac, just because my parents are from the UP doesnt mean I have a yooper accent, eh?",
+    "I'm single, come get me ladies :>",
+
+];
+
+document.getElementById("mcSplash").textContent =
+    minecraftSplashes[Math.floor(Math.random() * minecraftSplashes.length)];
+</script>
+
+<script>
+function setRandomSplash() {
+    const splash = document.getElementById("mcSplash");
+    splash.textContent = minecraftSplashes[
+        Math.floor(Math.random() * minecraftSplashes.length)
+    ];
+}
+
+setRandomSplash();
+
+document.querySelector('[data-frame="home"]').addEventListener("click", () => {
+    setRandomSplash();
+});
+</script>
+
+
+
+<script>
+// === EMAIL SECURITY CHECK ===
+(function() {
+  const allowedEmails = [
+    "sebbesen44@gmail.com",
+    "friend@example.com"
+  ];
+
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'lockedOverlay';
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.background = 'rgba(0,0,0,0.95)';
+  overlay.style.color = '#fff';
+  overlay.style.display = 'flex';
+  overlay.style.flexDirection = 'column';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+  overlay.style.zIndex = '9999';
+  overlay.style.textAlign = 'center';
+  overlay.style.padding = '20px';
+  overlay.innerHTML = `
+    <h1>Access Restricted</h1>
+    <p>Please enter the email you received this GUI from:</p>
+    <input type="email" id="emailInput" placeholder="you@example.com" style="padding:10px;font-size:16px;width:280px;margin-top:10px;border-radius:5px;border:2px solid #a53311;">
+    <button id="submitEmail" style="margin-top:12px;padding:8px 12px;font-size:16px;cursor:pointer;background-color:#a53311;border:none;color:#fff;border-radius:5px;">Submit</button>
+    <p style="font-size:12px;margin-top:8px;color:#ccc;">If your email is not approved, the site will remain locked.</p>
+  `;
+  document.body.appendChild(overlay);
+
+  const submitBtn = document.getElementById('submitEmail');
+  const emailInput = document.getElementById('emailInput');
+
+  // Check localStorage first
+  const savedEmail = localStorage.getItem('approvedEmail');
+  if (savedEmail && allowedEmails.includes(savedEmail.toLowerCase())) {
+    overlay.style.display = 'none';
+  }
+
+  submitBtn.addEventListener('click', () => {
+    const email = emailInput.value.trim().toLowerCase();
+    if (allowedEmails.includes(email)) {
+      localStorage.setItem('approvedEmail', email);
+      overlay.style.display = 'none';
+      alert("Access granted. Welcome!");
+    } else {
+      alert("This email is not authorized.");
+    }
+  });
+})();
+
+
 </script>
 </body>
 </html>
