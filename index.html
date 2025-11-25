@@ -491,14 +491,12 @@ document.querySelector('[data-frame="home"]').addEventListener("click", () => {
 
 
 <script>
-// === EMAIL SECURITY CHECK ===
 (function() {
   const allowedEmails = [
     "sebbesen44@gmail.com",
     "friend@example.com"
   ];
 
-  // Create overlay
   const overlay = document.createElement('div');
   overlay.id = 'lockedOverlay';
   overlay.style.position = 'fixed';
@@ -524,7 +522,6 @@ document.querySelector('[data-frame="home"]').addEventListener("click", () => {
   const submitBtn = document.getElementById('submitEmail');
   const emailInput = document.getElementById('emailInput');
 
-  // Check localStorage first
   const savedEmail = localStorage.getItem('approvedEmail');
   if (savedEmail && allowedEmails.includes(savedEmail.toLowerCase())) {
     overlay.style.display = 'none';
@@ -546,3 +543,4 @@ document.querySelector('[data-frame="home"]').addEventListener("click", () => {
 </script>
 </body>
 </html>
+
